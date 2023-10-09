@@ -1,26 +1,33 @@
 package md
 
-import "strings"
+import (
+	"strings"
+)
 
 type block struct {
-	text       string
-	expression bool
+	text         string
+	isExpression bool
 }
 
-type Template []block
+type Getter func([]byte, string) (string, error)
 
-func ParseTemplate(templateText string) Template {
+type Template struct {
+	blocks []block
+	get    Getter
+}
+
+func ParseTemplate(templateText string, getter Getter) Template {
 
 	const expressionByte byte = 36
 
-	var components Template = make([]block, 0)
+	var components []block = make([]block, 0)
 
 	var isExp bool = templateText[0] == expressionByte
 	var sb strings.Builder
 
 	for i := 0; i < len(templateText); i++ {
 		if templateText[i] == expressionByte {
-			components = append(components, block{text: sb.String(), expression: isExp})
+			components = append(components, block{text: sb.String(), isExpression: isExp})
 			sb = strings.Builder{}
 			isExp = !isExp
 		} else {
@@ -28,16 +35,18 @@ func ParseTemplate(templateText string) Template {
 		}
 	}
 
-	return components
+	return Template{blocks: components, get: getter}
 }
 
-func ApplyTemplate(template Template, values map[string]string) string {
+func ApplyTemplate(template Template, values []byte) string {
 	var sb strings.Builder
-	for i := 0; i < len(template); i++ {
-		if template[i].expression { // is a variable
-			sb.WriteString(values[template[i].text])
+	for _, current_block := range template.blocks {
+		text := current_block.text
+		if current_block.isExpression { // is a variable
+			str, _ := template.get(values, text)
+			sb.WriteString(str)
 		} else {
-			sb.WriteString(template[i].text)
+			sb.WriteString(text)
 		}
 	}
 
