@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 
+	md "dcastanho.readson/template"
+	"dcastanho.readson/template/expressions"
 	"github.com/urfave/cli/v2"
 )
 
@@ -17,8 +19,8 @@ func main() {
 				Name:    "templ",
 				Aliases: []string{"t"},
 				// Value: "template",
-				Usage:    "File path to the `TEMPLATE`",
-				Required: true,
+				Usage: "File path to the `TEMPLATE`",
+				// Required: true,
 			},
 		},
 		Action: func(cCtx *cli.Context) error {
@@ -26,8 +28,12 @@ func main() {
 			if jsonFile == "" {
 				return errors.New("Missing JSON file path")
 			}
+			files := GetFiles(jsonFile)
 			templFile := cCtx.String("templ")
-			OneToOne(jsonFile, templFile)
+			// OneTemplate(jsonFile, templFile)
+
+			OneTemplate(files, templFile)
+
 			return nil
 		},
 	}
@@ -37,20 +43,25 @@ func main() {
 	}
 }
 
-func OneToOne(jsonFile string, templateFile string) {
-	datJSON, err := os.ReadFile(jsonFile)
-	if err != nil {
-		print("Error ")
-		println(err.Error())
-	}
-
+func OneTemplate(jsonFiles []string, templateFile string) {
 	datTempl, err := os.ReadFile(templateFile)
 	if err != nil {
 		print("Error ")
 		println(err.Error())
 	}
+	templ := md.ParseTemplate(string(datTempl), expressions.JSONParserGetter)
 
-	res := ApplyJSON(datJSON, datTempl)
+	for _, file := range jsonFiles {
+		WriteOne(file, templ)
+	}
 
-	os.WriteFile("test", []byte(res), 0644)
+}
+
+func WriteOne(jsonFile string, template md.Template) {
+
+	dat, _ := os.ReadFile(jsonFile) // check for file has been done before
+	res := []byte(md.ApplyTemplate(template, dat))
+
+	os.WriteFile(FileName(jsonFile)+".md", res, 0064)
+
 }
