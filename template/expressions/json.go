@@ -14,24 +14,31 @@ func addNonEmpty(keys []string, sb strings.Builder) []string {
 	}
 }
 
-func convertKey(key string) []string {
-	const dotByte byte = byte('.')
-	const openBracketByte byte = byte('[')
-	const closeBracketByte byte = byte(']')
+func isArrow(k string, i int) bool {
+	if i == len(k)-1 {
+		return false
+	} else if k[i] == '-' && k[i+1] == '>' {
+		return true
+	}
+	return false
+}
+
+func ConvertKey(key string) []string {
 
 	var keys []string = make([]string, 0)
 
 	sb := strings.Builder{}
 
 	for i := 0; i < len(key); i++ {
-		if key[i] == dotByte {
+		if isArrow(key, i) {
+			i++
 			keys = addNonEmpty(keys, sb)
 			sb = strings.Builder{}
-		} else if key[i] == openBracketByte {
+		} else if key[i] == '[' {
 			keys = addNonEmpty(keys, sb)
 			sb = strings.Builder{}
 			sb.WriteByte(key[i])
-		} else if key[i] == closeBracketByte {
+		} else if key[i] == ']' {
 			sb.WriteByte(key[i])
 			keys = addNonEmpty(keys, sb)
 			sb = strings.Builder{}
@@ -48,8 +55,45 @@ func convertKey(key string) []string {
 }
 
 func JSONParserGetter(bytes []byte, key string) (string, error) {
-	keys := convertKey(key)
+	keys := ConvertKey(key)
 	d, _, _, _ := jsonparser.Get(bytes, keys...)
 	s, err := jsonparser.ParseString(d)
 	return s, err
+}
+
+func JSONParserGetterWithBase(base []string) func(bytes []byte, key string) (string, error) {
+	return func(bytes []byte, key string) (string, error) {
+		keys := ConvertKey(key)
+		keys = append(base, keys...)
+
+		d, _, _, _ := jsonparser.Get(bytes, keys...)
+		s, err := jsonparser.ParseString(d)
+		return s, err
+	}
+
+}
+
+func SplitJSON(pattern string) (string, string) {
+	sb := strings.Builder{}
+	found := false
+	var actual string
+	var accessPattern string
+
+	for i := 0; i < len(pattern); i++ {
+		curr := pattern[i]
+		if !found && (curr == '[' || isArrow(pattern, i)) {
+			actual = sb.String()
+			sb = strings.Builder{}
+			found = true
+		}
+		sb.WriteByte(curr)
+	}
+
+	if found {
+		accessPattern = sb.String()
+	} else {
+		actual = sb.String()
+	}
+
+	return actual, accessPattern
 }

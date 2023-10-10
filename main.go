@@ -28,11 +28,12 @@ func main() {
 			if jsonFile == "" {
 				return errors.New("Missing JSON file path")
 			}
-			files := GetFiles(jsonFile)
+			path, accessors := expressions.SplitJSON(jsonFile)
+			files := GetFiles(path)
 			templFile := cCtx.String("templ")
 			// OneTemplate(jsonFile, templFile)
 
-			OneTemplate(files, templFile)
+			OneTemplate(files, templFile, expressions.ConvertKey(accessors))
 
 			return nil
 		},
@@ -43,13 +44,13 @@ func main() {
 	}
 }
 
-func OneTemplate(jsonFiles []string, templateFile string) {
+func OneTemplate(jsonFiles []string, templateFile string, base []string) {
 	datTempl, err := os.ReadFile(templateFile)
 	if err != nil {
 		print("Error ")
 		println(err.Error())
 	}
-	templ := md.ParseTemplate(string(datTempl), expressions.JSONParserGetter)
+	templ := md.ParseTemplate(string(datTempl), expressions.JSONParserGetterWithBase(base))
 
 	for _, file := range jsonFiles {
 		WriteOne(file, templ)
