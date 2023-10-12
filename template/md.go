@@ -13,10 +13,9 @@ type Getter func([]byte, string) (string, error)
 
 type Template struct {
 	blocks []block
-	get    Getter
 }
 
-func ParseTemplate(templateText string, getter Getter) Template {
+func ParseTemplate(templateText string) Template {
 
 	const expressionByte byte = 36
 
@@ -35,15 +34,22 @@ func ParseTemplate(templateText string, getter Getter) Template {
 		}
 	}
 
-	return Template{blocks: components, get: getter}
+	if sb.Len() > 0 {
+		components = append(components, block{text: sb.String(), isExpression: false})
+	}
+
+	return Template{blocks: components}
 }
 
-func ApplyTemplate(template Template, values []byte) string {
+// TODO allow for more complex patterns of template (if, for, ternary operator)
+
+func ApplyTemplate(template Template, values []byte, getter Getter) string {
 	var sb strings.Builder
 	for _, current_block := range template.blocks {
 		text := current_block.text
+		println("block", text)
 		if current_block.isExpression { // is a variable
-			str, _ := template.get(values, text)
+			str, _ := getter(values, text)
 			sb.WriteString(str)
 		} else {
 			sb.WriteString(text)

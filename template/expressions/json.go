@@ -73,6 +73,31 @@ func JSONParserGetterWithBase(base []string) func(bytes []byte, key string) (str
 
 }
 
+func IsArray(keys []string, bytes []byte) (bool, *[][]byte) {
+
+	dat, tpe, _, _ := jsonparser.Get(bytes, keys...)
+
+	if tpe == jsonparser.Array {
+		return true, getArray(dat)
+	}
+	return false, nil
+}
+
+// func ArrayEach(data []byte, cb func(value []byte, dataType jsonparser.ValueType, offset int, err error), keys ...string)
+
+func getArray(data []byte) *[][]byte {
+	ar := make([][]byte, 0)
+
+	adder := func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		if err == nil {
+			ar = append(ar, value)
+		}
+	}
+
+	jsonparser.ArrayEach(data, adder)
+	return &ar
+}
+
 func SplitJSON(pattern string) (string, string) {
 	sb := strings.Builder{}
 	found := false

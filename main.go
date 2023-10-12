@@ -4,11 +4,14 @@ import (
 	"errors"
 	"log"
 	"os"
+	"path/filepath"
+	"strconv"
 
 	md "dcastanho.readson/template"
-	"dcastanho.readson/template/expressions"
 	"github.com/urfave/cli/v2"
 )
+
+// TODO allow for custom file names with json expressions
 
 func main() {
 	app := &cli.App{
@@ -28,12 +31,12 @@ func main() {
 			if jsonFile == "" {
 				return errors.New("Missing JSON file path")
 			}
-			path, accessors := expressions.SplitJSON(jsonFile)
-			files := GetFiles(path)
+			// getNext := GetX(path)
+
 			templFile := cCtx.String("templ")
 			// OneTemplate(jsonFile, templFile)
 
-			OneTemplate(files, templFile, expressions.ConvertKey(accessors))
+			OneTemplate(jsonFile, templFile)
 
 			return nil
 		},
@@ -44,25 +47,27 @@ func main() {
 	}
 }
 
-func OneTemplate(jsonFiles []string, templateFile string, base []string) {
+func OneTemplate(pattern string, templateFile string) {
 	datTempl, err := os.ReadFile(templateFile)
+	ext := filepath.Ext(templateFile)
 	if err != nil {
 		print("Error ")
 		println(err.Error())
 	}
-	templ := md.ParseTemplate(string(datTempl), expressions.JSONParserGetterWithBase(base))
+	templ := md.ParseTemplate(string(datTempl))
 
-	for _, file := range jsonFiles {
-		WriteOne(file, templ)
+	iterator := GetData(pattern)
+	curr, get := iterator()
+
+	i := 0
+
+	for curr != nil {
+		res := md.ApplyTemplate(templ, curr, get)
+		filename := FileName(pattern) + strconv.Itoa(i) + ext
+		println(filename)
+		os.WriteFile(filename, []byte(res), 0064)
+		i++
+		curr, get = iterator()
 	}
-
-}
-
-func WriteOne(jsonFile string, template md.Template) {
-
-	dat, _ := os.ReadFile(jsonFile) // check for file has been done before
-	res := []byte(md.ApplyTemplate(template, dat))
-
-	os.WriteFile(FileName(jsonFile)+".md", res, 0064)
 
 }
