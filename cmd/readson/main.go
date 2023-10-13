@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"strconv"
 
-	md "dcastanho.readson/template"
+	"dcastanho.readson/internal/files"
+	parser "dcastanho.readson/internal/parser"
+	md "dcastanho.readson/internal/template"
 	"github.com/urfave/cli/v2"
 )
 
@@ -33,10 +35,16 @@ func main() {
 			}
 			// getNext := GetX(path)
 
-			templFile := cCtx.String("templ")
-			// OneTemplate(jsonFile, templFile)
+			ret, err := parser.ParseFile("test.md")
 
-			OneTemplate(jsonFile, templFile)
+			println(ret)
+			if err != nil {
+				println(err.Error())
+			}
+			// templFile := cCtx.String("templ")
+			// // OneTemplate(jsonFile, templFile)
+
+			// OneTemplate(jsonFile, templFile)
 
 			return nil
 		},
@@ -56,14 +64,14 @@ func OneTemplate(pattern string, templateFile string) {
 	}
 	templ := md.ParseTemplate(string(datTempl))
 
-	iterator := GetData(pattern)
+	iterator := files.GetData(pattern)
 	curr, get := iterator()
 
 	i := 0
 
 	for curr != nil {
 		res := md.ApplyTemplate(templ, curr, get)
-		filename := FileName(pattern) + strconv.Itoa(i) + ext
+		filename := files.FileName(pattern) + strconv.Itoa(i) + ext
 		println(filename)
 		os.WriteFile(filename, []byte(res), 0064)
 		i++

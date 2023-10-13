@@ -1,22 +1,22 @@
-package main
+package files
 
 import (
 	"os"
 	"path/filepath"
 	"strings"
 
-	md "dcastanho.readson/template"
-	"dcastanho.readson/template/expressions"
+	"dcastanho.readson/internal/access"
+	md "dcastanho.readson/internal/template"
 	// "dcastanho.readson/template/expressions"
 )
 
 func GetData(expression string) func() ([]byte, md.Getter) {
 
-	path, accessors := expressions.SplitJSON(expression)
+	path, accessors := access.SplitJSON(expression)
 
 	result := getFiles(path)
 	var sub *[][]byte
-	keys := expressions.ConvertKey(accessors)
+	keys := access.ConvertKey(accessors)
 
 	i := 0
 	j := 0
@@ -26,7 +26,7 @@ func GetData(expression string) func() ([]byte, md.Getter) {
 		if i < len(*result) {
 			dat, _ := os.ReadFile((*result)[i])
 
-			isAr, arr := expressions.IsArray(keys, dat)
+			isAr, arr := access.IsArray(keys, dat)
 			if isAr {
 				sub = arr
 			}
@@ -39,10 +39,10 @@ func GetData(expression string) func() ([]byte, md.Getter) {
 					j = 0
 					i++
 				}
-				return dat, expressions.JSONParserGetterWithBase(keys[1:])
+				return dat, access.JSONParserGetterWithBase(keys[1:])
 			} else {
 				i++
-				return dat, expressions.JSONParserGetterWithBase(keys)
+				return dat, access.JSONParserGetterWithBase(keys)
 			}
 		} else {
 			return nil, nil
@@ -51,8 +51,6 @@ func GetData(expression string) func() ([]byte, md.Getter) {
 }
 
 func getFiles(expression string) *[]string {
-
-	// keys := expressions.ConvertKey(expression)
 
 	var result *[]string
 

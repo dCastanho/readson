@@ -1,0 +1,20 @@
+{ 
+    package parser
+
+}
+
+Start <- Any*EOF
+
+Any <- (Text / Expression)
+
+Expression <- IF / ACS
+
+IF <- S "if " condition:Text* S trueClause:Any* falseClause:( S "else" S Any*)?  S "end" S 
+
+ACS <- S Any* S
+
+Text <- [^$]
+
+S <- "$"
+
+EOF <- !.
