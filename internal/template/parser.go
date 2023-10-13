@@ -157,18 +157,48 @@ var g = &grammar{
 								name: "Seq",
 							},
 						},
+						&labeledExpr{
+							pos:   position{line: 36, col: 35, offset: 517},
+							label: "f",
+							expr: &zeroOrOneExpr{
+								pos: position{line: 36, col: 37, offset: 519},
+								expr: &seqExpr{
+									pos: position{line: 36, col: 38, offset: 520},
+									exprs: []any{
+										&ruleRefExpr{
+											pos:  position{line: 36, col: 38, offset: 520},
+											name: "S",
+										},
+										&litMatcher{
+											pos:        position{line: 36, col: 40, offset: 522},
+											val:        "!else",
+											ignoreCase: false,
+											want:       "\"!else\"",
+										},
+										&ruleRefExpr{
+											pos:  position{line: 36, col: 48, offset: 530},
+											name: "S",
+										},
+										&ruleRefExpr{
+											pos:  position{line: 36, col: 50, offset: 532},
+											name: "Seq",
+										},
+									},
+								},
+							},
+						},
 						&ruleRefExpr{
-							pos:  position{line: 36, col: 35, offset: 517},
+							pos:  position{line: 36, col: 56, offset: 538},
 							name: "S",
 						},
 						&litMatcher{
-							pos:        position{line: 36, col: 37, offset: 519},
+							pos:        position{line: 36, col: 58, offset: 540},
 							val:        "!end",
 							ignoreCase: false,
 							want:       "\"!end\"",
 						},
 						&ruleRefExpr{
-							pos:  position{line: 36, col: 44, offset: 526},
+							pos:  position{line: 36, col: 65, offset: 547},
 							name: "S",
 						},
 					},
@@ -177,21 +207,21 @@ var g = &grammar{
 		},
 		{
 			name: "Accessor",
-			pos:  position{line: 44, col: 1, offset: 732},
+			pos:  position{line: 50, col: 1, offset: 871},
 			expr: &actionExpr{
-				pos: position{line: 44, col: 13, offset: 744},
+				pos: position{line: 50, col: 13, offset: 883},
 				run: (*parser).callonAccessor1,
 				expr: &seqExpr{
-					pos: position{line: 44, col: 13, offset: 744},
+					pos: position{line: 50, col: 13, offset: 883},
 					exprs: []any{
 						&ruleRefExpr{
-							pos:  position{line: 44, col: 13, offset: 744},
+							pos:  position{line: 50, col: 13, offset: 883},
 							name: "S",
 						},
 						&andExpr{
-							pos: position{line: 44, col: 15, offset: 746},
+							pos: position{line: 50, col: 15, offset: 885},
 							expr: &charClassMatcher{
-								pos:        position{line: 44, col: 16, offset: 747},
+								pos:        position{line: 50, col: 16, offset: 886},
 								val:        "[^!]",
 								chars:      []rune{'!'},
 								ignoreCase: false,
@@ -199,15 +229,15 @@ var g = &grammar{
 							},
 						},
 						&labeledExpr{
-							pos:   position{line: 44, col: 21, offset: 752},
+							pos:   position{line: 50, col: 21, offset: 891},
 							label: "t",
 							expr: &ruleRefExpr{
-								pos:  position{line: 44, col: 23, offset: 754},
+								pos:  position{line: 50, col: 23, offset: 893},
 								name: "Text",
 							},
 						},
 						&ruleRefExpr{
-							pos:  position{line: 44, col: 28, offset: 759},
+							pos:  position{line: 50, col: 28, offset: 898},
 							name: "S",
 						},
 					},
@@ -216,15 +246,15 @@ var g = &grammar{
 		},
 		{
 			name: "TextBlock",
-			pos:  position{line: 52, col: 1, offset: 895},
+			pos:  position{line: 58, col: 1, offset: 1034},
 			expr: &actionExpr{
-				pos: position{line: 52, col: 14, offset: 908},
+				pos: position{line: 58, col: 14, offset: 1047},
 				run: (*parser).callonTextBlock1,
 				expr: &labeledExpr{
-					pos:   position{line: 52, col: 14, offset: 908},
+					pos:   position{line: 58, col: 14, offset: 1047},
 					label: "t",
 					expr: &ruleRefExpr{
-						pos:  position{line: 52, col: 16, offset: 910},
+						pos:  position{line: 58, col: 16, offset: 1049},
 						name: "Text",
 					},
 				},
@@ -232,14 +262,14 @@ var g = &grammar{
 		},
 		{
 			name: "Text",
-			pos:  position{line: 58, col: 1, offset: 1028},
+			pos:  position{line: 64, col: 1, offset: 1167},
 			expr: &actionExpr{
-				pos: position{line: 58, col: 9, offset: 1036},
+				pos: position{line: 64, col: 9, offset: 1175},
 				run: (*parser).callonText1,
 				expr: &oneOrMoreExpr{
-					pos: position{line: 58, col: 9, offset: 1036},
+					pos: position{line: 64, col: 9, offset: 1175},
 					expr: &charClassMatcher{
-						pos:        position{line: 58, col: 9, offset: 1036},
+						pos:        position{line: 64, col: 9, offset: 1175},
 						val:        "[^$]",
 						chars:      []rune{'$'},
 						ignoreCase: false,
@@ -250,9 +280,9 @@ var g = &grammar{
 		},
 		{
 			name: "S",
-			pos:  position{line: 63, col: 1, offset: 1095},
+			pos:  position{line: 69, col: 1, offset: 1234},
 			expr: &litMatcher{
-				pos:        position{line: 63, col: 6, offset: 1100},
+				pos:        position{line: 69, col: 6, offset: 1239},
 				val:        "$",
 				ignoreCase: false,
 				want:       "\"$\"",
@@ -260,11 +290,11 @@ var g = &grammar{
 		},
 		{
 			name: "EOF",
-			pos:  position{line: 65, col: 1, offset: 1107},
+			pos:  position{line: 71, col: 1, offset: 1246},
 			expr: &notExpr{
-				pos: position{line: 65, col: 8, offset: 1114},
+				pos: position{line: 71, col: 8, offset: 1253},
 				expr: &anyMatcher{
-					line: 65, col: 9, offset: 1115,
+					line: 71, col: 9, offset: 1254,
 				},
 			},
 		},
@@ -304,19 +334,25 @@ func (p *parser) callonSeq1() (any, error) {
 	return p.cur.onSeq1(stack["v"])
 }
 
-func (c *current) onIf1(cond, tr any) (any, error) {
+func (c *current) onIf1(cond, tr, f any) (any, error) {
 
 	condition, _ := cond.(string)
 	trueClause, _ := tr.(node)
+	var falseClause node
 
-	node := ifNode{condition: condition, trueClause: trueClause, falseClause: nil, baseNode: baseNode{child: nil}}
+	if f != nil {
+		vals, _ := toAnySlice(f)
+		falseClause, _ = vals[3].(node)
+	}
+
+	node := ifNode{condition: condition, trueClause: trueClause, falseClause: falseClause, baseNode: baseNode{child: nil}}
 	return &node, nil
 }
 
 func (p *parser) callonIf1() (any, error) {
 	stack := p.vstack[len(p.vstack)-1]
 	_ = stack
-	return p.cur.onIf1(stack["cond"], stack["tr"])
+	return p.cur.onIf1(stack["cond"], stack["tr"], stack["f"])
 }
 
 func (c *current) onAccessor1(t any) (any, error) {

@@ -1,6 +1,8 @@
 package files
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,7 +16,12 @@ func GetData(expression string) func() ([]byte, md.Getter) {
 
 	path, accessors := access.SplitJSON(expression)
 
-	result := getFiles(path)
+	result, err := getFiles(path)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
 	var sub *[][]byte
 	keys := access.ConvertKey(accessors)
 
@@ -50,30 +57,35 @@ func GetData(expression string) func() ([]byte, md.Getter) {
 	}
 }
 
-func getFiles(expression string) *[]string {
+func getFiles(expression string) (*[]string, error) {
 
 	var result *[]string
+	var err error
 
 	if isDir(expression) {
-		result = getDirFiles(expression)
+		result, err = getDirFiles(expression)
 	} else if isPattern(expression) {
-		result = getPatternFiles(expression)
+		result, err = getPatternFiles(expression)
 	} else { // is normal file
-		result = getSingleFile(expression)
+		result, err = getSingleFile(expression)
 	}
 
-	return result
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // func isFirstArray()
 
 // File accessors
 
-func getDirFiles(dir string) *[]string {
+func getDirFiles(dir string) (*[]string, error) {
 	result := make([]string, 0)
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		// TODO handle read dir error
+		return nil, err
 	}
 
 	for _, entry := range entries {
@@ -83,26 +95,26 @@ func getDirFiles(dir string) *[]string {
 		}
 	}
 
-	return &result
+	return &result, nil
 }
 
-func getSingleFile(file string) *[]string {
+func getSingleFile(file string) (*[]string, error) {
 	info, err := os.Stat(file)
 	if os.IsNotExist(err) {
-		// TODO handle file not exists
+		return nil, errors.New(fmt.Sprintf("File %s does not exist", file))
 	}
 	if info.IsDir() {
-		// TODO handle file is a dir
+		return nil, errors.New(fmt.Sprintf("%s is a directory does not exist", file))
 	}
-	return &[]string{file}
+	return &[]string{file}, nil
 }
 
-func getPatternFiles(pattern string) *[]string {
+func getPatternFiles(pattern string) (*[]string, error) {
 	res, err := filepath.Glob(pattern)
 	if err != nil {
-		// TODO handle glob error
+		return nil, err
 	}
-	return &res
+	return &res, nil
 }
 
 func isDir(expression string) bool {

@@ -33,11 +33,17 @@ Seq <- v:(( If / TextBlock / Accessor ) Seq / "") {
 
 Expression <- If / Accessor  
 
-If <- S "!if " cond:Text S tr:Seq S "!end" S {
+If <- S "!if " cond:Text S tr:Seq f:(S "!else" S Seq)? S "!end" S {
 	condition, _ := cond.(string)
 	trueClause, _:= tr.(node)
+	var falseClause node 
 
-	node := ifNode{condition: condition, trueClause: trueClause, falseClause: nil, baseNode: baseNode{child: nil}}
+	if f != nil { 
+		vals, _ := toAnySlice(f)
+		falseClause, _ = vals[3].(node)
+	}
+
+	node := ifNode{condition: condition, trueClause: trueClause, falseClause: falseClause, baseNode: baseNode{child: nil}}
 	return &node, nil 
 }
 

@@ -53,7 +53,11 @@ func OneTemplate(pattern string, templateFile string) {
 		print("Error ")
 		println(err.Error())
 	}
-	templ := md.ParseTemplate(datTempl)
+	templ, err := md.ParseTemplate(datTempl)
+
+	if err != nil {
+		panic(err)
+	}
 
 	iterator := files.GetData(pattern)
 	curr, get := iterator()
@@ -61,10 +65,13 @@ func OneTemplate(pattern string, templateFile string) {
 	i := 0
 
 	for curr != nil {
-		res := md.ApplyTemplate(templ, curr, get)
-		println(res)
+		res, err := md.ApplyTemplate(templ, curr, get)
+
+		if err != nil {
+			panic(err)
+		}
+
 		filename := files.FileName(pattern) + strconv.Itoa(i) + ext
-		println(filename)
 		os.WriteFile(filename, []byte(res), fs.FileMode(os.O_CREATE))
 		i++
 		curr, get = iterator()

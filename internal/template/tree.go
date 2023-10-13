@@ -2,20 +2,11 @@ package parser
 
 import (
 	"errors"
+	"fmt"
 )
 
-func Execute(t any, data []byte, getter Getter) (string, error) {
-
-	if top, ok := t.(node); ok {
-		return top.evaluate(data, getter), nil
-	} else {
-		return "", errors.New("Not a node")
-	}
-
-}
-
 type node interface {
-	evaluate(data []byte, getter Getter) string
+	evaluate(data []byte, getter Getter) (string, error)
 	next() node
 	setNext(n node)
 }
@@ -32,15 +23,17 @@ func (b *baseNode) setNext(n node) {
 	b.child = n
 }
 
-func (b *baseNode) withChild(def string, data []byte, getter Getter) string {
-	var res string
+func (b *baseNode) withChild(def string, data []byte, getter Getter) (string, error) {
+
 	if b.child == nil {
-		res = def
+		return def, nil
 	} else {
-		childText := b.child.evaluate(data, getter)
-		res = def + childText
+		childText, err := b.child.evaluate(data, getter)
+		if err != nil {
+			return "", err
+		}
+		return def + childText, nil
 	}
-	return res
 }
 
 type textNode struct {
@@ -48,11 +41,10 @@ type textNode struct {
 	text string
 }
 
-func (n *textNode) evaluate(data []byte, getter Getter) string {
-	println("evaluating text", n.text)
+func (n *textNode) evaluate(data []byte, getter Getter) (string, error) {
 	thisText := n.text
-	result := n.withChild(thisText, data, getter)
-	return result
+	result, err := n.withChild(thisText, data, getter)
+	return result, err
 }
 
 type accessNode struct {
@@ -60,14 +52,14 @@ type accessNode struct {
 	accessPattern string
 }
 
-func (n accessNode) evaluate(data []byte, getter Getter) string {
+func (n accessNode) evaluate(data []byte, getter Getter) (string, error) {
 	println("evaluating access", n.accessPattern)
 	s, err := getter(data, n.accessPattern)
 	if err != nil {
-		// TODO handle incorrect access
+		return "", errors.New(fmt.Sprintf("Access pattern %s is invalid", n.accessPattern))
 	}
-	result := n.withChild(s, data, getter)
-	return result
+	result, err := n.withChild(s, data, getter)
+	return result, err
 }
 
 type ifNode struct {
@@ -77,11 +69,33 @@ type ifNode struct {
 	falseClause node
 }
 
-func (n *ifNode) evaluate(data []byte, getter Getter) string {
-	println("evaluating if", n.condition)
-	// result := evalCondition(n.condition, data, getter)
-	// TODO: implement condition and false clause
-	temp := n.trueClause.evaluate(data, getter)
-	result := n.withChild(temp, data, getter)
-	return result
+func evalCondition(condition string, data []byte, getter Getter) (bool, error) {
+	// TODO: implement condition evaluation
+	return false, nil
+}
+
+func (n *ifNode) evaluate(data []byte, getter Getter) (string, error) {
+	println("evaluating if")
+
+	result, err := evalCondition(n.condition, data, getter)
+
+	if err != nil {
+		return "", nil
+	}
+
+	var clause string
+
+	if result {
+		clause, err = n.trueClause.evaluate(data, getter)
+	} else {
+		clause, err = n.falseClause.evaluate(data, getter)
+	}
+
+	if err != nil {
+		return "", nil
+	}
+
+	res, err := n.withChild(clause, data, getter)
+	return res, err
+
 }
