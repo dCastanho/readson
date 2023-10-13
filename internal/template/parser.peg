@@ -1,0 +1,68 @@
+{ 
+    package parser
+
+
+func toAnySlice(v any) ([]any, bool) {
+	if v == nil {
+		return nil, false
+	}
+	newV, ok := v.([]any)
+	return newV, ok
+}
+}
+
+Start <- top:Seq EOF {
+	return top, nil
+} 
+
+
+Seq <- v:(( If / TextBlock / Accessor ) Seq / "") {
+	vals, ok := toAnySlice(v)
+
+	if !ok {
+		return nil, nil
+	} else {
+		left, _ := vals[0].(node)
+		right, _ := vals[1].(node)
+
+		left.setNext(right)
+
+		return left, nil	
+	}	
+}
+
+Expression <- If / Accessor  
+
+If <- S "!if " cond:Text S tr:Seq S "!end" S {
+	condition, _ := cond.(string)
+	trueClause, _:= tr.(node)
+
+	node := ifNode{condition: condition, trueClause: trueClause, falseClause: nil, baseNode: baseNode{child: nil}}
+	return &node, nil 
+}
+
+Accessor <- S &[^!] t:Text S  {
+	pattern := t.(string)
+
+	node := accessNode{accessPattern: pattern, baseNode: baseNode{child: nil}}
+	return &node, nil
+}
+
+
+TextBlock <- t:Text {
+	text := t.(string)
+	node := textNode{text: text, baseNode: baseNode {child: nil}}
+	return &node, nil
+}
+
+Text <- [^$]+ {
+	text :=  string(c.text)
+	return text, nil
+}
+
+S <- "$"
+
+EOF <- !.
+
+
+

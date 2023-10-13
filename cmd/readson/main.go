@@ -2,13 +2,13 @@ package main
 
 import (
 	"errors"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 
 	"dcastanho.readson/internal/files"
-	parser "dcastanho.readson/internal/parser"
 	md "dcastanho.readson/internal/template"
 	"github.com/urfave/cli/v2"
 )
@@ -34,17 +34,8 @@ func main() {
 				return errors.New("Missing JSON file path")
 			}
 			// getNext := GetX(path)
-
-			ret, err := parser.ParseFile("test.md")
-
-			println(ret)
-			if err != nil {
-				println(err.Error())
-			}
-			// templFile := cCtx.String("templ")
-			// // OneTemplate(jsonFile, templFile)
-
-			// OneTemplate(jsonFile, templFile)
+			templFile := cCtx.String("templ")
+			OneTemplate(jsonFile, templFile)
 
 			return nil
 		},
@@ -62,7 +53,7 @@ func OneTemplate(pattern string, templateFile string) {
 		print("Error ")
 		println(err.Error())
 	}
-	templ := md.ParseTemplate(string(datTempl))
+	templ := md.ParseTemplate(datTempl)
 
 	iterator := files.GetData(pattern)
 	curr, get := iterator()
@@ -71,9 +62,10 @@ func OneTemplate(pattern string, templateFile string) {
 
 	for curr != nil {
 		res := md.ApplyTemplate(templ, curr, get)
+		println(res)
 		filename := files.FileName(pattern) + strconv.Itoa(i) + ext
 		println(filename)
-		os.WriteFile(filename, []byte(res), 0064)
+		os.WriteFile(filename, []byte(res), fs.FileMode(os.O_CREATE))
 		i++
 		curr, get = iterator()
 	}
