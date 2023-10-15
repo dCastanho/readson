@@ -48,6 +48,7 @@ If <- S "!if " cond:OrCondition S tr:Seq f:(S "!else" S Seq)? S "!end" S {
 	return &node, nil 
 }
 
+
 Accessor <- S &[^!] t:AccessPattern S  {
 	pattern := t.(string)
 
@@ -67,7 +68,7 @@ OrCondition <- base:AndCondition os:( _ "or"  _ AndCondition)* {
 	baseCondition, _ := base.(condition)
 	others, _ := toAnySlice(os) 
 
-	println(baseCondition)
+
 
 	if others == nil {
 		return baseCondition, nil 
@@ -82,7 +83,6 @@ OrCondition <- base:AndCondition os:( _ "or"  _ AndCondition)* {
 		curr = top
 	}
 
-	println(curr)
 
 	return curr, nil
 
@@ -110,27 +110,55 @@ AndCondition <- base:Condition os:( _ "and" _  Condition)* {
 
 }
 
-Condition <- e:(ConditionElement _ Operator _ ConditionElement / ConditionElement) {
-	elems, ok := toAnySlice(e)
-	
-	if !ok {
-		elem, _ := e.(element)
-		return singleCondition{element: elem}, nil 
-	} else  {
+Condition <- e:(FromElements / GroupedCondition) {
+	return e, nil
+}
+
+GroupedCondition <- "(" _ cond:OrCondition _ ")" {
+	return cond, nil 
+}
+
+FromElements <- e:(ConditionElement _ Operator _ ConditionElement / ConditionElement) {
+	elems, isOperation := toAnySlice(e)
+
+	fmt.Println("eee", e, reflect.TypeOf(e))
+	fmt.Println("isOp", isOperation)
+
+
+	if isOperation {
 		left, _ := elems[0].(element)
 		right, _ := elems[4].(element)
 		operator, _ := elems[2].([]uint8)
-		fmt.Println(left, right, operator)
 		return operatorCondition{left: left, right: right, operator: convertOperator(string(operator))}, nil 
 	}
+	
+	elem, isElem := e.(element)
+
+	fmt.Println("isElem", isElem)
+
+	
+	if isElem {
+		return singleCondition{element: elem}, nil 
+	} 
+
+	condition, isCondition := e.(condition)
+
+	if isCondition {
+		return condition, nil 
+	}
+
+	return nil, errors.New("Invalid condition")
 }
 
-ConditionElement <- e:(Constant / AccessElement) {
+ConditionElement <- e:(Constant / AccessElement ) {
+	fmt.Println("elem", e)
 	return e, nil
 }
+
+
 Operator <- "=" / "<=" / ">=" / "<" / ">" / "!="
 
-Constant <- ('"' [^$"]+ '"' / "-"? [0-9]+("." [0-9]+)? / "true" / "false") { 
+Constant <- ('"' [^$"()]+ '"' / "-"? [0-9]+("." [0-9]+)? / "true" / "false") { 
 	text := string(c.text)
 	val, tpe, err := textToElem(text)
 	if err != nil {
@@ -143,7 +171,6 @@ Constant <- ('"' [^$"]+ '"' / "-"? [0-9]+("." [0-9]+)? / "true" / "false") {
 
 AccessElement <- t:AccessPattern {
 	pattern, _ := t.(string)
-	fmt.Println(pattern)
 	return accessElement{pattern: pattern}, nil
 }
  

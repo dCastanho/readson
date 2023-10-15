@@ -51,6 +51,20 @@ type singleCondition struct {
 	element element
 }
 
+func (c singleCondition) eval(ctx *ASTContext) (bool, error) {
+	if c.element.typeof(ctx) != Boolean {
+		return false, errors.New(fmt.Sprintf("%s not a boolean", c.element.name()))
+	}
+
+	v, err := c.element.value(ctx)
+
+	if err != nil {
+		return false, err
+	}
+
+	return v.(bool), err
+}
+
 type andCondition struct {
 	left  condition
 	right condition
@@ -69,7 +83,7 @@ func (c andCondition) eval(ctx *ASTContext) (bool, error) {
 		return false, err
 	}
 
-	println("evaluating and", left, right)
+	fmt.Println("evaluating and", left, right)
 
 	return left && right, nil
 }
@@ -92,6 +106,8 @@ func (c orCondition) eval(ctx *ASTContext) (bool, error) {
 		return false, err
 	}
 
+	fmt.Println("evaluating or", left, right)
+
 	return left || right, nil
 }
 
@@ -102,7 +118,6 @@ type operatorCondition struct {
 }
 
 func sameTypes(a element, b element, ctx *ASTContext) (bool, ElementType, ElementType) {
-	fmt.Println(a, b)
 	aType := a.typeof(ctx)
 	bTyte := b.typeof(ctx)
 	return aType == bTyte, aType, bTyte
@@ -165,6 +180,7 @@ func (c operatorCondition) eval(ctx *ASTContext) (bool, error) {
 type element interface {
 	typeof(ctx *ASTContext) ElementType
 	value(ctx *ASTContext) (any, error)
+	name() string
 }
 
 func textToElem(text string) (any, ElementType, error) {
@@ -245,6 +261,10 @@ type accessElement struct {
 	pattern string
 }
 
+func (e accessElement) name() string {
+	return e.pattern
+}
+
 func (e accessElement) typeof(ctx *ASTContext) ElementType {
 
 	_, ttype, err := getPattern(e.pattern, ctx)
@@ -276,22 +296,25 @@ func (e accessElement) value(ctx *ASTContext) (any, error) {
 
 type constantElement struct {
 	constant  any
+	constName string
 	constType ElementType
+}
+
+func (e constantElement) name() string {
+	return e.constName
 }
 
 func (e constantElement) typeof(ctx *ASTContext) ElementType {
 	return e.constType
 }
 
-func (e constantElement) value(ctx *ASTContext) any {
-	return e.constant
+func (e constantElement) value(ctx *ASTContext) (any, error) {
+	return e.constant, nil
 }
 
 func numberCompare(a, b any) int8 {
 	actualA, _ := a.(float64)
 	actualB, _ := b.(float64)
-
-	println(actualA, actualB)
 
 	if actualA == actualB {
 		return 0
