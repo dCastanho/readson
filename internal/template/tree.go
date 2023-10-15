@@ -6,7 +6,7 @@ import (
 )
 
 type node interface {
-	evaluate(data []byte, getter Getter) (string, error)
+	evaluate(ctx *ASTContext) (string, error)
 	next() node
 	setNext(n node)
 }
@@ -23,12 +23,12 @@ func (b *baseNode) setNext(n node) {
 	b.child = n
 }
 
-func (b *baseNode) withChild(def string, data []byte, getter Getter) (string, error) {
+func (b *baseNode) withChild(def string, ctx *ASTContext) (string, error) {
 
 	if b.child == nil {
 		return def, nil
 	} else {
-		childText, err := b.child.evaluate(data, getter)
+		childText, err := b.child.evaluate(ctx)
 		if err != nil {
 			return "", err
 		}
@@ -41,9 +41,9 @@ type textNode struct {
 	text string
 }
 
-func (n *textNode) evaluate(data []byte, getter Getter) (string, error) {
+func (n *textNode) evaluate(ctx *ASTContext) (string, error) {
 	thisText := n.text
-	result, err := n.withChild(thisText, data, getter)
+	result, err := n.withChild(thisText, ctx)
 	return result, err
 }
 
@@ -52,50 +52,49 @@ type accessNode struct {
 	accessPattern string
 }
 
-func (n accessNode) evaluate(data []byte, getter Getter) (string, error) {
+func (n accessNode) evaluate(ctx *ASTContext) (string, error) {
 	println("evaluating access", n.accessPattern)
-	s, err := getter(data, n.accessPattern)
+	s, _, err := ctx.Getter(ctx.Data, n.accessPattern)
 	if err != nil {
-		return "", errors.New(fmt.Sprintf("Access pattern %s is invalid", n.accessPattern))
+		return "", errors.New(fmt.Sprintf("Access pattern '%s' is invalid", n.accessPattern))
 	}
-	result, err := n.withChild(s, data, getter)
+	result, err := n.withChild(s, ctx)
 	return result, err
 }
 
 type ifNode struct {
 	baseNode
-	condition   string
+	condition   condition
 	trueClause  node
 	falseClause node
 }
 
-func evalCondition(condition string, data []byte, getter Getter) (bool, error) {
-	// TODO: implement condition evaluation
-	return false, nil
-}
-
-func (n *ifNode) evaluate(data []byte, getter Getter) (string, error) {
+func (n *ifNode) evaluate(ctx *ASTContext) (string, error) {
 	println("evaluating if")
+	var err error
 
-	result, err := evalCondition(n.condition, data, getter)
+	result, err := n.condition.eval(ctx)
+
+	println("if is", result)
 
 	if err != nil {
+		println(err.Error())
 		return "", nil
 	}
 
 	var clause string
 
 	if result {
-		clause, err = n.trueClause.evaluate(data, getter)
+		clause, err = n.trueClause.evaluate(ctx)
 	} else {
-		clause, err = n.falseClause.evaluate(data, getter)
+		clause, err = n.falseClause.evaluate(ctx)
 	}
 
 	if err != nil {
 		return "", nil
 	}
 
-	res, err := n.withChild(clause, data, getter)
+	res, err := n.withChild(clause, ctx)
 	return res, err
 
 }

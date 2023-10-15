@@ -12,7 +12,7 @@ import (
 	// "dcastanho.readson/template/expressions"
 )
 
-func GetData(expression string) func() ([]byte, md.Getter) {
+func GetData(expression string) func() *md.ASTContext {
 
 	path, accessors := access.SplitJSON(expression)
 
@@ -28,10 +28,14 @@ func GetData(expression string) func() ([]byte, md.Getter) {
 	i := 0
 	j := 0
 
-	return func() ([]byte, md.Getter) {
+	return func() *md.ASTContext {
 
 		if i < len(*result) {
-			dat, _ := os.ReadFile((*result)[i])
+
+			filename := (*result)[i]
+
+			fmt.Println(filename)
+			dat, _ := os.ReadFile(filename)
 
 			isAr, arr := access.IsArray(keys, dat)
 			if isAr {
@@ -46,13 +50,15 @@ func GetData(expression string) func() ([]byte, md.Getter) {
 					j = 0
 					i++
 				}
-				return dat, access.JSONParserGetterWithBase(keys[1:])
+				getter := access.JSONParserGetterWithBase(keys[1:])
+				return &md.ASTContext{Data: dat, Getter: getter}
 			} else {
 				i++
-				return dat, access.JSONParserGetterWithBase(keys)
+				getter := access.JSONParserGetterWithBase(keys)
+				return &md.ASTContext{Data: dat, Getter: getter}
 			}
 		} else {
-			return nil, nil
+			return nil
 		}
 	}
 }
@@ -89,7 +95,7 @@ func getDirFiles(dir string) (*[]string, error) {
 	}
 
 	for _, entry := range entries {
-		if !entry.IsDir() {
+		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".json" {
 			filename := entry.Name()
 			result = append(result, dir+filename)
 		}

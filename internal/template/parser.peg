@@ -33,8 +33,9 @@ Seq <- v:(( If / TextBlock / Accessor ) Seq / "") {
 
 Expression <- If / Accessor  
 
-If <- S "!if " cond:Text S tr:Seq f:(S "!else" S Seq)? S "!end" S {
-	condition, _ := cond.(string)
+If <- S "!if " cond:OrCondition S tr:Seq f:(S "!else" S Seq)? S "!end" S {
+	// condition, _ := (cond.c.string)
+	condition := cond.(condition)
 	trueClause, _:= tr.(node)
 	var falseClause node 
 
@@ -47,7 +48,7 @@ If <- S "!if " cond:Text S tr:Seq f:(S "!else" S Seq)? S "!end" S {
 	return &node, nil 
 }
 
-Accessor <- S &[^!] t:Text S  {
+Accessor <- S &[^!] t:AccessPattern S  {
 	pattern := t.(string)
 
 	node := accessNode{accessPattern: pattern, baseNode: baseNode{child: nil}}
@@ -61,12 +62,104 @@ TextBlock <- t:Text {
 	return &node, nil
 }
 
+
+OrCondition <- base:AndCondition os:( _ "or"  _ AndCondition)* {
+	baseCondition, _ := base.(condition)
+	others, _ := toAnySlice(os) 
+
+	println(baseCondition)
+
+	if others == nil {
+		return baseCondition, nil 
+	}
+
+	curr := baseCondition
+
+	for _, other := range others {
+		components, _ := toAnySlice(other)
+		condition, _ := components[3].(condition)	
+		top := orCondition{left: curr, right: condition} 
+		curr = top
+	}
+
+	println(curr)
+
+	return curr, nil
+
+}
+
+AndCondition <- base:Condition os:( _ "and" _  Condition)* {
+	baseCondition, _ := base.(condition)
+	others, _ := toAnySlice(os) 
+
+
+	if others == nil {
+		return baseCondition, nil 
+	}
+
+	curr := baseCondition
+
+	for _, other := range others {
+		components, _ := toAnySlice(other)
+		condition, _ := components[3].(condition)	
+		top := andCondition{left: curr, right: condition} 
+		curr = top
+	}
+
+	return curr, nil
+
+}
+
+Condition <- e:(ConditionElement _ Operator _ ConditionElement / ConditionElement) {
+	elems, ok := toAnySlice(e)
+	
+	if !ok {
+		elem, _ := e.(element)
+		return singleCondition{element: elem}, nil 
+	} else  {
+		left, _ := elems[0].(element)
+		right, _ := elems[4].(element)
+		operator, _ := elems[2].([]uint8)
+		fmt.Println(left, right, operator)
+		return operatorCondition{left: left, right: right, operator: convertOperator(string(operator))}, nil 
+	}
+}
+
+ConditionElement <- e:(Constant / AccessElement) {
+	return e, nil
+}
+Operator <- "=" / "<=" / ">=" / "<" / ">" / "!="
+
+Constant <- ('"' [^$"]+ '"' / "-"? [0-9]+("." [0-9]+)? / "true" / "false") { 
+	text := string(c.text)
+	val, tpe, err := textToElem(text)
+	if err != nil {
+		return "", err 
+	}
+
+	return constantElement{constant: val, constType: tpe}, nil 
+
+}
+
+AccessElement <- t:AccessPattern {
+	pattern, _ := t.(string)
+	fmt.Println(pattern)
+	return accessElement{pattern: pattern}, nil
+}
+ 
+AccessPattern <- ([a-zA-Z0-9] / "->" / "[" / "]")+ {
+	text := string(c.text)
+	return text, nil
+}
+
 Text <- [^$]+ {
 	text :=  string(c.text)
 	return text, nil
 }
 
 S <- "$"
+
+_ "whitespace" <- [ \t\r\n]*
 
 EOF <- !.
 

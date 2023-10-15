@@ -3,6 +3,8 @@ package access
 import (
 	"strings"
 
+	md "dcastanho.readson/internal/template"
+
 	"github.com/buger/jsonparser"
 )
 
@@ -54,21 +56,44 @@ func ConvertKey(key string) []string {
 	return keys
 }
 
-func JSONParserGetter(bytes []byte, key string) (string, error) {
-	keys := ConvertKey(key)
-	d, _, _, _ := jsonparser.Get(bytes, keys...)
-	s, err := jsonparser.ParseString(d)
-	return s, err
+func fromJSONtoElement(jsonType jsonparser.ValueType) md.ElementType {
+	switch jsonType {
+	case jsonparser.String:
+		return md.String
+	case jsonparser.Boolean:
+		return md.Boolean
+	case jsonparser.Number:
+		return md.Number
+	default:
+		return md.Invalid
+	}
 }
 
-func JSONParserGetterWithBase(base []string) func(bytes []byte, key string) (string, error) {
-	return func(bytes []byte, key string) (string, error) {
+func JSONParserGetter(bytes []byte, key string) (string, md.ElementType, error) {
+	keys := ConvertKey(key)
+	d, dtype, _, err := jsonparser.Get(bytes, keys...)
+
+	if err != nil {
+		return "", md.Invalid, err
+	}
+
+	s, err := jsonparser.ParseString(d)
+	return s, fromJSONtoElement(dtype), err
+}
+
+func JSONParserGetterWithBase(base []string) func(bytes []byte, key string) (string, md.ElementType, error) {
+	return func(bytes []byte, key string) (string, md.ElementType, error) {
 		keys := ConvertKey(key)
 		keys = append(base, keys...)
 
-		d, _, _, _ := jsonparser.Get(bytes, keys...)
+		d, dtype, _, err := jsonparser.Get(bytes, keys...)
+
+		if err != nil {
+			return "", md.Invalid, err
+		}
+
 		s, err := jsonparser.ParseString(d)
-		return s, err
+		return s, fromJSONtoElement(dtype), err
 	}
 
 }

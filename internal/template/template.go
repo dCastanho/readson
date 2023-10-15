@@ -1,11 +1,20 @@
 package parser
 
-import "errors"
+import (
+	"errors"
+)
 
-type Getter func([]byte, string) (string, error)
+// TODO Add logging
+
+type Getter func([]byte, string) (string, ElementType, error)
 
 type Template struct {
 	top node
+}
+
+type ASTContext struct {
+	Getter Getter
+	Data   []byte
 }
 
 func ParseTemplate(templateData []byte) (*Template, error) {
@@ -22,6 +31,6 @@ func ParseTemplate(templateData []byte) (*Template, error) {
 	return &Template{top: actual}, nil
 }
 
-func ApplyTemplate(template *Template, data []byte, getter Getter) (string, error) {
-	return template.top.evaluate(data, getter)
+func ApplyTemplate(template *Template, ctx *ASTContext) (string, error) {
+	return template.top.evaluate(ctx)
 }

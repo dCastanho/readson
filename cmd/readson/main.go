@@ -60,12 +60,12 @@ func OneTemplate(pattern string, templateFile string) {
 	}
 
 	iterator := files.GetData(pattern)
-	curr, get := iterator()
+	ctx := iterator()
 
 	i := 0
 
-	for curr != nil {
-		res, err := md.ApplyTemplate(templ, curr, get)
+	for ctx != nil {
+		res, err := md.ApplyTemplate(templ, ctx)
 
 		if err != nil {
 			panic(err)
@@ -74,7 +74,7 @@ func OneTemplate(pattern string, templateFile string) {
 		filename := files.FileName(pattern) + strconv.Itoa(i) + ext
 		os.WriteFile(filename, []byte(res), fs.FileMode(os.O_CREATE))
 		i++
-		curr, get = iterator()
+		ctx = iterator()
 	}
 
 }
