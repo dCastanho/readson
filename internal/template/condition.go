@@ -116,7 +116,11 @@ func (c operatorCondition) eval(ctx *ASTContext) (bool, error) {
 		return false, errors.New(fmt.Sprintf("Cannot compare of different types left:%d right:%d", actual, bType))
 	}
 
-	result := compare(c.left, c.right, ctx, actual)
+	result, err := compare(c.left, c.right, ctx, actual)
+
+	if err != nil {
+		return false, err
+	}
 
 	booleanCompareError := errors.New("Booleans cannot be compared this way")
 
@@ -160,7 +164,7 @@ func (c operatorCondition) eval(ctx *ASTContext) (bool, error) {
 
 type element interface {
 	typeof(ctx *ASTContext) ElementType
-	value(ctx *ASTContext) any
+	value(ctx *ASTContext) (any, error)
 }
 
 func textToElem(text string) (any, ElementType, error) {
@@ -201,41 +205,51 @@ func gottedToElem(text string, elemenType ElementType) (any, error) {
 }
 
 // Assumes they are comparable
-func compare(e element, other element, ctx *ASTContext, actual ElementType) int8 {
+func compare(e element, other element, ctx *ASTContext, actual ElementType) (int8, error) {
+
+	otherVal, err := other.value(ctx)
+
+	if err != nil {
+		return 0, err
+	}
+
+	thisVal, err := e.value(ctx)
+
+	if err != nil {
+		return 0, err
+	}
 
 	switch actual {
 	case Boolean:
-		first, _ := e.value(ctx).(bool)
-		second, _ := other.value(ctx).(bool)
+		first, _ := thisVal.(bool)
+		second, _ := otherVal.(bool)
 
 		if first == second {
-			return 0
+			return 0, nil
 		} else {
-			return -1
+			return -1, nil
 		}
 	case String:
-		first, _ := e.value(ctx).(string)
-		second, _ := other.value(ctx).(string)
+		first, _ := thisVal.(string)
+		second, _ := otherVal.(string)
 
-		return int8(strings.Compare(first, second))
+		return int8(strings.Compare(first, second)), nil
 
 	case Number:
-		return numberCompare(e.value(ctx), other.value(ctx))
+		return numberCompare(thisVal, otherVal), nil
 	}
-	return 0
+	return 0, errors.New("Unsuported comparison")
 }
 
 type accessElement struct {
 	pattern string
 }
 
-// TODO make access elements functional
-
 func (e accessElement) typeof(ctx *ASTContext) ElementType {
 
 	_, ttype, err := getPattern(e.pattern, ctx)
 	if err != nil {
-		//TODO error handling in typeof
+		return Invalid
 	}
 
 	return ttype
@@ -251,13 +265,13 @@ func getPattern(pattern string, ctx *ASTContext) (any, ElementType, error) {
 	return toAny, ttype, err
 }
 
-func (e accessElement) value(ctx *ASTContext) any {
+func (e accessElement) value(ctx *ASTContext) (any, error) {
 	toAny, _, err := getPattern(e.pattern, ctx)
 	if err != nil {
-		//TODO error handling in typeof
+		return nil, err
 	}
 
-	return toAny
+	return toAny, nil
 }
 
 type constantElement struct {
