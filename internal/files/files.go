@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"dcastanho.readson/internal/access"
+	"dcastanho.readson/internal/logger"
 	md "dcastanho.readson/internal/template"
 	// "dcastanho.readson/template/expressions"
 )
@@ -34,15 +35,19 @@ func GetData(expression string) func() *md.ASTContext {
 
 			filename := (*result)[i]
 
-			fmt.Println(filename)
 			dat, _ := os.ReadFile(filename)
+			logger.DefaultLogger.Block("Starting file:", filename)
 
 			isAr, arr := access.IsArray(keys, dat)
 			if isAr {
 				sub = arr
+				logger.DefaultLogger.Block("Starting array in", filename)
+
 			}
 
 			if sub != nil {
+				logger.DefaultLogger.Block("Array element", j)
+
 				dat = (*sub)[j]
 				j++
 				if j == len(*sub) {

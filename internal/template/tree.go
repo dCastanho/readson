@@ -3,6 +3,8 @@ package parser
 import (
 	"errors"
 	"fmt"
+
+	"dcastanho.readson/internal/logger"
 )
 
 type node interface {
@@ -43,6 +45,9 @@ type textNode struct {
 
 func (n *textNode) evaluate(ctx *ASTContext) (string, error) {
 	thisText := n.text
+
+	logger.DefaultLogger.Node("Text:", thisText)
+
 	result, err := n.withChild(thisText, ctx)
 	return result, err
 }
@@ -53,7 +58,9 @@ type accessNode struct {
 }
 
 func (n accessNode) evaluate(ctx *ASTContext) (string, error) {
-	println("evaluating access", n.accessPattern)
+
+	logger.DefaultLogger.Node("Variable Access:", n.accessPattern)
+
 	s, _, err := ctx.Getter(ctx.Data, n.accessPattern)
 	if err != nil {
 		return "", errors.New(fmt.Sprintf("Access pattern '%s' is invalid", n.accessPattern))
@@ -70,15 +77,14 @@ type ifNode struct {
 }
 
 func (n *ifNode) evaluate(ctx *ASTContext) (string, error) {
-	println("evaluating if")
+
+	logger.DefaultLogger.Node("If")
+
 	var err error
 
 	result, err := n.condition.eval(ctx)
 
-	println("if is", result)
-
 	if err != nil {
-		println(err.Error())
 		return "", nil
 	}
 

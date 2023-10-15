@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"dcastanho.readson/internal/files"
+	"dcastanho.readson/internal/logger"
 	md "dcastanho.readson/internal/template"
 	"github.com/urfave/cli/v2"
 )
@@ -24,7 +25,14 @@ func main() {
 				Name:    "templ",
 				Aliases: []string{"t"},
 				// Value: "template",
-				Usage: "File path to the `TEMPLATE`",
+				Usage:    "File path to the `TEMPLATE`",
+				Required: true,
+			},
+			&cli.BoolFlag{
+				Name:    "verbose",
+				Aliases: []string{"v"},
+				// Value: "template",
+				Usage: "Print logs to standard out",
 				// Required: true,
 			},
 		},
@@ -35,6 +43,7 @@ func main() {
 			}
 			// getNext := GetX(path)
 			templFile := cCtx.String("templ")
+			logger.DeployLogger(cCtx.Bool("verbose"), os.Stdout)
 			OneTemplate(jsonFile, templFile)
 
 			return nil

@@ -83,8 +83,6 @@ func (c andCondition) eval(ctx *ASTContext) (bool, error) {
 		return false, err
 	}
 
-	fmt.Println("evaluating and", left, right)
-
 	return left && right, nil
 }
 
@@ -105,8 +103,6 @@ func (c orCondition) eval(ctx *ASTContext) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
-	fmt.Println("evaluating or", left, right)
 
 	return left || right, nil
 }

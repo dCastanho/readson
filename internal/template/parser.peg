@@ -112,7 +112,6 @@ AndCondition <- base:Condition os:( _ "and" _  Condition)* {
 
 Condition <- e:(FromElements / ("!")? GroupedCondition) {
 
-	fmt.Println("elem", e)
 
 	elems, isGroup := toAnySlice(e)
 
