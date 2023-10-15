@@ -111,6 +111,16 @@ func (c orCondition) eval(ctx *ASTContext) (bool, error) {
 	return left || right, nil
 }
 
+type negatedCondition struct {
+	toNegate condition
+}
+
+func (c negatedCondition) eval(ctx *ASTContext) (bool, error) {
+	v, err := c.toNegate.eval(ctx)
+
+	return !v, err
+}
+
 type operatorCondition struct {
 	left     element
 	right    element

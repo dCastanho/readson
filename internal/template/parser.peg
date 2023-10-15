@@ -110,20 +110,37 @@ AndCondition <- base:Condition os:( _ "and" _  Condition)* {
 
 }
 
-Condition <- e:(FromElements / GroupedCondition) {
-	return e, nil
+Condition <- e:(FromElements / ("!")? GroupedCondition) {
+
+	fmt.Println("elem", e)
+
+	elems, isGroup := toAnySlice(e)
+
+	if !isGroup {
+		return e, nil 
+	}
+
+	isNegated := elems[0] != nil 
+	cond, _ := elems[1].(condition)
+
+	if isNegated {
+		return negatedCondition{toNegate: cond}, nil
+	} 
+
+	return cond, nil 
+	
+
+
 }
 
 GroupedCondition <- "(" _ cond:OrCondition _ ")" {
 	return cond, nil 
 }
 
-FromElements <- e:(ConditionElement _ Operator _ ConditionElement / ConditionElement) {
-	elems, isOperation := toAnySlice(e)
+FromElements <- e:(ConditionElement _ Operator _ ConditionElement / ("!"?) ConditionElement) {
+	elems, _ := toAnySlice(e)
 
-	fmt.Println("eee", e, reflect.TypeOf(e))
-	fmt.Println("isOp", isOperation)
-
+	isOperation := len(elems) == 5
 
 	if isOperation {
 		left, _ := elems[0].(element)
@@ -132,13 +149,17 @@ FromElements <- e:(ConditionElement _ Operator _ ConditionElement / ConditionEle
 		return operatorCondition{left: left, right: right, operator: convertOperator(string(operator))}, nil 
 	}
 	
-	elem, isElem := e.(element)
+	isElem := len(elems) == 2
 
-	fmt.Println("isElem", isElem)
-
-	
 	if isElem {
-		return singleCondition{element: elem}, nil 
+		elem, _ := elems[1].(element)
+		elemCondition := singleCondition{element: elem}
+		if elems[0] == nil {
+			return elemCondition, nil
+		} else {
+			return negatedCondition{toNegate: elemCondition}, nil
+		}
+
 	} 
 
 	condition, isCondition := e.(condition)
@@ -151,7 +172,6 @@ FromElements <- e:(ConditionElement _ Operator _ ConditionElement / ConditionEle
 }
 
 ConditionElement <- e:(Constant / AccessElement ) {
-	fmt.Println("elem", e)
 	return e, nil
 }
 
