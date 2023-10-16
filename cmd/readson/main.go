@@ -14,9 +14,13 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// TODO allow for custom file names with json expressions
 // TODO tests?
+// TODO remove ! from blocks, make them reserved words
+// TODO Capitalize/Title functions
+// TODO Defines
 // TODO Documentation
+// TODO nicer if else
+// TODO add type comparisons
 
 func main() {
 	app := &cli.App{

@@ -94,7 +94,7 @@ func (n *ifNode) evaluate(ctx *ASTContext) (string, error) {
 
 	if result {
 		clause, err = n.trueClause.evaluate(ctx)
-	} else {
+	} else if n.falseClause != nil {
 		clause, err = n.falseClause.evaluate(ctx)
 	}
 
