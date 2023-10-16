@@ -3,6 +3,8 @@ package parser
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"dcastanho.readson/internal/logger"
 )
@@ -103,4 +105,101 @@ func (n *ifNode) evaluate(ctx *ASTContext) (string, error) {
 	res, err := n.withChild(clause, ctx)
 	return res, err
 
+}
+
+type forNode struct {
+	baseNode
+	itemName  string
+	indexName string
+	pattern   string
+	loop      node
+	forType   bool
+}
+
+func (n *forNode) rangeFor(ctx *ASTContext, sb *strings.Builder, array []byte) {
+	i := 1
+
+	forEach := func(curr []byte) {
+
+		newGetter := func(data []byte, pattern string) (string, ElementType, error) {
+
+			if pattern == n.indexName {
+				return strconv.Itoa(i), String, nil
+			}
+
+			updated, usesItem := strings.CutPrefix(pattern, n.itemName)
+
+			if usesItem {
+				return ctx.Getter(curr, updated)
+			} else {
+				return ctx.Getter(data, pattern)
+			}
+
+		}
+
+		s, err := n.loop.evaluate(&ASTContext{Data: ctx.Data, Getter: newGetter})
+		i++
+
+		if err != nil {
+			panic(err.Error())
+		}
+
+		sb.WriteString(s)
+	}
+
+	ctx.ArrayEach(array, forEach)
+}
+
+func (n *forNode) propFor(ctx *ASTContext, sb *strings.Builder, object []byte) {
+
+	forEach := func(prop string, val []byte) {
+
+		newGetter := func(data []byte, pattern string) (string, ElementType, error) {
+
+			if pattern == n.indexName {
+				return prop, String, nil
+			}
+
+			updated, usesItem := strings.CutPrefix(pattern, n.itemName)
+
+			if usesItem {
+				return ctx.Getter(val, updated)
+			} else {
+				return ctx.Getter(data, pattern)
+			}
+
+		}
+
+		s, err := n.loop.evaluate(&ASTContext{Data: ctx.Data, Getter: newGetter})
+
+		if err != nil {
+			panic(err.Error())
+		}
+
+		sb.WriteString(s)
+	}
+
+	ctx.ObjectEach(object, forEach)
+}
+
+func (n *forNode) evaluate(ctx *ASTContext) (string, error) {
+	// sb := strings.Builder{}
+	logger.DefaultLogger.Node("For:", n.forType)
+
+	a, _, err := ctx.Getter(ctx.Data, n.pattern)
+
+	if err != nil {
+		return "", err
+	}
+
+	iterable := []byte(a)
+	sb := strings.Builder{}
+
+	if n.forType {
+		n.rangeFor(ctx, &sb, iterable)
+	} else {
+		n.propFor(ctx, &sb, iterable)
+	}
+	s := sb.String()
+	return s, nil
 }

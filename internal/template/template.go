@@ -4,17 +4,21 @@ import (
 	"errors"
 )
 
-// TODO Add logging
-
 type Getter func([]byte, string) (string, ElementType, error)
+
+type ArrayEach func(data []byte, forEach func(curr []byte)) error
+
+type ObjectEach func(data []byte, forEach func(prop string, val []byte)) error
 
 type Template struct {
 	top node
 }
 
 type ASTContext struct {
-	Getter Getter
-	Data   []byte
+	Getter     Getter
+	ObjectEach ObjectEach
+	ArrayEach  ArrayEach
+	Data       []byte
 }
 
 func ParseTemplate(templateData []byte) (*Template, error) {

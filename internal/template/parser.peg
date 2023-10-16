@@ -16,9 +16,8 @@ Start <- top:Seq EOF {
 } 
 
 
-Seq <- v:(( If / TextBlock / Accessor ) Seq / "") {
+Seq <- v:(( If / For / TextBlock / Accessor ) Seq / "") {
 	vals, ok := toAnySlice(v)
-
 	if !ok {
 		return nil, nil
 	} else {
@@ -29,11 +28,9 @@ Seq <- v:(( If / TextBlock / Accessor ) Seq / "") {
 
 		return left, nil	
 	}	
-}
+}   
 
-Expression <- If / Accessor  
-
-If <- S "!if " cond:OrCondition S tr:Seq f:(S "!else" S Seq)? S "!end" S {
+If <- S "!if" _ cond:OrCondition _ S tr:Seq f:(S "!else" S Seq)? S "!end" S {
 	// condition, _ := (cond.c.string)
 	condition := cond.(condition)
 	trueClause, _:= tr.(node)
@@ -46,6 +43,27 @@ If <- S "!if " cond:OrCondition S tr:Seq f:(S "!else" S Seq)? S "!end" S {
 
 	node := ifNode{condition: condition, trueClause: trueClause, falseClause: falseClause, baseNode: baseNode{child: nil}}
 	return &node, nil 
+}
+
+For <- S "!for" _ vars:ForVars _ "=" _ t:("range" / "props") _ p:AccessPattern _ S _ l:Seq S "!end" S {
+	stringVars, _ := vars.([]string)
+	loop, _ := l.(node)
+	forT := string(t.([]byte))
+	pattern, _ := p.(string)
+
+	foraa := forNode{ forType: forT == "range", itemName: stringVars[1], indexName: stringVars[0], pattern: pattern, loop: loop, baseNode : baseNode{child: nil}} 
+	return &foraa, nil
+}
+
+ForVars <- v1:VarName _ "," _ v2:VarName {
+	vstr1, _ := v1.(string)
+	vstr2, _ := v2.(string)
+	return []string{vstr1, vstr2}, nil
+}
+
+VarName <- [a-zA-Z]+ {
+	varName := string(c.text)
+	return varName, nil
 }
 
 

@@ -56,11 +56,15 @@ func GetData(expression string) func() *md.ASTContext {
 					i++
 				}
 				getter := access.JSONParserGetterWithBase(keys[1:])
-				return &md.ASTContext{Data: dat, Getter: getter}
+				arrayEach := access.JSONArrayEach
+				objectEach := access.JSONObjectEach
+				return &md.ASTContext{Data: dat, Getter: getter, ArrayEach: arrayEach, ObjectEach: objectEach}
 			} else {
 				i++
 				getter := access.JSONParserGetterWithBase(keys)
-				return &md.ASTContext{Data: dat, Getter: getter}
+				arrayEach := access.JSONArrayEach
+				objectEach := access.JSONObjectEach
+				return &md.ASTContext{Data: dat, Getter: getter, ArrayEach: arrayEach, ObjectEach: objectEach}
 			}
 		} else {
 			return nil

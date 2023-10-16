@@ -56,6 +56,28 @@ func ConvertKey(key string) []string {
 	return keys
 }
 
+func JSONArrayEach(data []byte, forEach func(curr []byte)) error {
+
+	r := func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
+		forEach(value)
+	}
+
+	_, err := jsonparser.ArrayEach(data, r)
+	return err
+}
+
+func JSONObjectEach(data []byte, forEach func(prop string, val []byte)) error {
+
+	r := func(key []byte, value []byte, dataType jsonparser.ValueType, offset int) error {
+		prop := string(key)
+		forEach(prop, value)
+		return nil
+	}
+
+	err := jsonparser.ObjectEach(data, r)
+	return err
+}
+
 func fromJSONtoElement(jsonType jsonparser.ValueType) md.ElementType {
 	switch jsonType {
 	case jsonparser.String:
@@ -95,7 +117,6 @@ func JSONParserGetterWithBase(base []string) func(bytes []byte, key string) (str
 		s, err := jsonparser.ParseString(d)
 		return s, fromJSONtoElement(dtype), err
 	}
-
 }
 
 func IsArray(keys []string, bytes []byte) (bool, *[][]byte) {
