@@ -30,6 +30,18 @@ func main() {
 				Usage:    "File path to the `TEMPLATE`",
 				Required: true,
 			},
+			&cli.StringFlag{
+				Name:    "name",
+				Aliases: []string{"p"},
+				// Value: "template",
+				Usage: "`PATTERN` to assign each file a name",
+			},
+			&cli.StringFlag{
+				Name:    "output",
+				Aliases: []string{"o"},
+				// Value: "template",
+				Usage: "Output to a single file `OUTPUT`",
+			},
 			&cli.BoolFlag{
 				Name:    "verbose",
 				Aliases: []string{"v"},
@@ -45,8 +57,15 @@ func main() {
 			}
 			// getNext := GetX(path)
 			templFile := cCtx.String("templ")
+			filePattern := cCtx.String("name")
+			output := cCtx.String("output")
+
+			if output != "" && filePattern != "" {
+				panic("Cannot assign both a name pattern and an output file")
+			}
+
 			logger.DeployLogger(cCtx.Bool("verbose"), os.Stdout)
-			OneTemplate(jsonFile, templFile)
+			OneTemplate(jsonFile, templFile, filePattern, output)
 
 			return nil
 		},
@@ -57,12 +76,11 @@ func main() {
 	}
 }
 
-func OneTemplate(pattern string, templateFile string) {
+func OneTemplate(pattern string, templateFile string, filePattern string, output string) {
 	datTempl, err := os.ReadFile(templateFile)
 	ext := filepath.Ext(templateFile)
 	if err != nil {
-		print("Error ")
-		println(err.Error())
+		panic(err.Error())
 	}
 	templ, err := md.ParseTemplate(datTempl)
 
@@ -82,7 +100,20 @@ func OneTemplate(pattern string, templateFile string) {
 			panic(err)
 		}
 
-		filename := files.FileName(pattern) + strconv.Itoa(i) + ext
+		var filename string
+
+		if filePattern == "" && output == "" {
+			filename = files.FileName(pattern) + strconv.Itoa(i) + ext
+		} else if pattern != "" {
+			dir, pattern := filepath.Split(filePattern)
+			filename, _, err = ctx.Getter(ctx.Data, pattern)
+			filename = dir + filename + ext
+			if err != nil {
+				panic(err.Error())
+			}
+		} else if output != "" {
+			filename = output + ext
+		}
 		os.WriteFile(filename, []byte(res), fs.FileMode(os.O_CREATE))
 		i++
 		ctx = iterator()
