@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-// TODO Add ( ) logic and negation
-
 type ElementType uint8
 
 const Boolean ElementType = 0

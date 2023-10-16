@@ -15,6 +15,8 @@ import (
 )
 
 // TODO allow for custom file names with json expressions
+// TODO tests?
+// TODO Documentation
 
 func main() {
 	app := &cli.App{

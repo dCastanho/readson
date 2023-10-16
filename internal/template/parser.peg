@@ -30,7 +30,7 @@ Seq <- v:(( If / For / TextBlock / Accessor ) Seq / "") {
 	}	
 }   
 
-If <- S "!if" _ cond:OrCondition _ S tr:Seq f:(S "!else" S Seq)? S "!end" S {
+If <- S "!if" _ cond:OrCondition _ S _ tr:Seq  f:(S "!else" S Seq)? S "!end" S {
 	// condition, _ := (cond.c.string)
 	condition := cond.(condition)
 	trueClause, _:= tr.(node)

@@ -200,6 +200,6 @@ func (n *forNode) evaluate(ctx *ASTContext) (string, error) {
 	} else {
 		n.propFor(ctx, &sb, iterable)
 	}
-	s := sb.String()
-	return s, nil
+	loopString := sb.String()
+	return n.withChild(loopString, ctx)
 }
