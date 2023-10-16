@@ -30,7 +30,7 @@ Seq <- v:(( If / For / TextBlock / Accessor ) Seq / "") {
 	}	
 }   
 
-If <- S "!if" _ cond:OrCondition _ S _ tr:Seq  f:(S "!else" S Seq)? S "!end" S {
+If <- S "if" _ cond:OrCondition _ S _ tr:Seq  f:(S "else" S _ Seq)? S "end" S {
 	// condition, _ := (cond.c.string)
 	condition := cond.(condition)
 	trueClause, _:= tr.(node)
@@ -38,14 +38,14 @@ If <- S "!if" _ cond:OrCondition _ S _ tr:Seq  f:(S "!else" S Seq)? S "!end" S {
 
 	if f != nil { 
 		vals, _ := toAnySlice(f)
-		falseClause, _ = vals[3].(node)
+		falseClause, _ = vals[4].(node)
 	}
 
 	node := ifNode{condition: condition, trueClause: trueClause, falseClause: falseClause, baseNode: baseNode{child: nil}}
 	return &node, nil 
 }
 
-For <- S "!for" _ vars:ForVars _ "=" _ t:("range" / "props") _ p:AccessPattern _ S _ l:Seq S "!end" S {
+For <- S "for" _ vars:ForVars _ "=" _ t:("range" / "props") _ p:AccessPattern _ S _ l:Seq S "end" S {
 	stringVars, _ := vars.([]string)
 	loop, _ := l.(node)
 	forT := string(t.([]byte))
@@ -67,7 +67,7 @@ VarName <- [a-zA-Z]+ {
 }
 
 
-Accessor <- S &[^!] t:AccessPattern S  {
+Accessor <- S t:AccessPattern S  {
 	pattern := t.(string)
 
 	node := accessNode{accessPattern: pattern, baseNode: baseNode{child: nil}}
@@ -214,15 +214,17 @@ AccessElement <- t:AccessPattern {
 	return accessElement{pattern: pattern}, nil
 }
  
-AccessPattern <- ([a-zA-Z0-9] / "->" / "[" / "]")+ {
+AccessPattern <- !(Special / S) ([a-zA-Z0-9] / "->" / "[" / "]")+ {
 	text := string(c.text)
 	return text, nil
 }
 
-Text <- [^$]+ {
+Text <- [^$]+  {
 	text :=  string(c.text)
 	return text, nil
 }
+
+Special <- "for" / "if" / "range" / "props" / "exists" / "end" / "else" 
 
 S <- "$"
 
