@@ -128,8 +128,7 @@ AndCondition <- base:Condition os:( _ "and" _  Condition)* {
 
 }
 
-Condition <- e:(FromElements / ("!")? GroupedCondition) {
-
+Condition <- e:( Exists / FromElements / ("!")? GroupedCondition) {
 
 	elems, isGroup := toAnySlice(e)
 
@@ -146,9 +145,13 @@ Condition <- e:(FromElements / ("!")? GroupedCondition) {
 
 	return cond, nil 
 	
-
-
 }
+
+Exists <- "exists" _ p:AccessPattern {
+	pattern, _ := p.(string)
+	return existsCondition{pattern: pattern}, nil
+}
+
 
 GroupedCondition <- "(" _ cond:OrCondition _ ")" {
 	return cond, nil 

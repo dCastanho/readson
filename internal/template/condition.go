@@ -14,7 +14,9 @@ type ElementType uint8
 const Boolean ElementType = 0
 const String ElementType = 1
 const Number ElementType = 2
-const Invalid ElementType = 3
+const Array ElementType = 3
+const Object ElementType = 4
+const NotExists ElementType = 5
 
 type operatorType uint8
 
@@ -77,6 +79,12 @@ func (c andCondition) eval(ctx *ASTContext) (bool, error) {
 		return false, err
 	}
 
+	fmt.Println("L", left)
+
+	if !left {
+		return false, nil
+	}
+
 	right, err := c.right.eval(ctx)
 
 	if err != nil {
@@ -96,6 +104,10 @@ func (c orCondition) eval(ctx *ASTContext) (bool, error) {
 
 	if err != nil {
 		return false, err
+	}
+
+	if left {
+		return true, nil
 	}
 
 	right, err := c.right.eval(ctx)
@@ -202,7 +214,7 @@ func textToElem(text string) (any, ElementType, error) {
 	} else {
 		fl, err := strconv.ParseFloat(text, 64)
 		if err != nil {
-			return nil, Invalid, err
+			return nil, NotExists, err
 		}
 
 		tpe = Number
@@ -275,7 +287,7 @@ func (e accessElement) typeof(ctx *ASTContext) ElementType {
 
 	_, ttype, err := getPattern(e.pattern, ctx)
 	if err != nil {
-		return Invalid
+		return NotExists
 	}
 
 	return ttype
@@ -284,7 +296,7 @@ func (e accessElement) typeof(ctx *ASTContext) ElementType {
 func getPattern(pattern string, ctx *ASTContext) (any, ElementType, error) {
 	elem, ttype, err := ctx.Getter(ctx.Data, pattern)
 	if err != nil {
-		return nil, Invalid, err
+		return nil, NotExists, err
 	}
 
 	toAny, err := gottedToElem(elem, ttype)
@@ -330,4 +342,13 @@ func numberCompare(a, b any) int8 {
 		return -1
 	}
 
+}
+
+type existsCondition struct {
+	pattern string
+}
+
+func (n existsCondition) eval(ctx *ASTContext) (bool, error) {
+	_, t, _ := ctx.Getter(ctx.Data, n.pattern)
+	return t != NotExists, nil
 }

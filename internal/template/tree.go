@@ -87,7 +87,7 @@ func (n *ifNode) evaluate(ctx *ASTContext) (string, error) {
 	result, err := n.condition.eval(ctx)
 
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	var clause string
@@ -99,7 +99,7 @@ func (n *ifNode) evaluate(ctx *ASTContext) (string, error) {
 	}
 
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	res, err := n.withChild(clause, ctx)

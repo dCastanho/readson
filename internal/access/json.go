@@ -86,9 +86,17 @@ func fromJSONtoElement(jsonType jsonparser.ValueType) md.ElementType {
 		return md.Boolean
 	case jsonparser.Number:
 		return md.Number
+	case jsonparser.Array:
+		return md.Array
+	case jsonparser.Object:
+		return md.Object
+	case jsonparser.Unknown:
+	case jsonparser.NotExist:
+	case jsonparser.Null:
 	default:
-		return md.Invalid
+		return md.NotExists
 	}
+	return md.NotExists
 }
 
 func JSONParserGetter(bytes []byte, key string) (string, md.ElementType, error) {
@@ -96,7 +104,7 @@ func JSONParserGetter(bytes []byte, key string) (string, md.ElementType, error) 
 	d, dtype, _, err := jsonparser.Get(bytes, keys...)
 
 	if err != nil {
-		return "", md.Invalid, err
+		return "", md.NotExists, err
 	}
 
 	s, err := jsonparser.ParseString(d)
@@ -111,7 +119,7 @@ func JSONParserGetterWithBase(base []string) func(bytes []byte, key string) (str
 		d, dtype, _, err := jsonparser.Get(bytes, keys...)
 
 		if err != nil {
-			return "", md.Invalid, err
+			return "", md.NotExists, err
 		}
 
 		s, err := jsonparser.ParseString(d)
