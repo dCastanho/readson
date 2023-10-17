@@ -21,8 +21,8 @@ type ASTContext struct {
 	Data       []byte
 }
 
-func ParseTemplate(templateData []byte) (*Template, error) {
-	top, err := Parse("", templateData)
+func ParseTemplate(templateName string) (*Template, error) {
+	top, err := ParseFile(templateName)
 	if err != nil {
 		return nil, err
 	}

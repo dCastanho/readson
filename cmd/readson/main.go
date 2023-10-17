@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"errors"
+	"fmt"
 	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"dcastanho.readson/internal/files"
 	"dcastanho.readson/internal/logger"
@@ -15,7 +18,6 @@ import (
 )
 
 // TODO tests?
-// TODO remove ! from blocks, make them reserved words
 // TODO Capitalize/Title functions
 // TODO Defines
 // TODO Documentation
@@ -67,7 +69,19 @@ func main() {
 			}
 
 			logger.DeployLogger(cCtx.Bool("verbose"), os.Stdout)
-			OneTemplate(jsonFile, templFile, filePattern, output)
+
+			out, err := processTemplateFile(templFile)
+
+			if err != nil {
+				panic(err.Error())
+			}
+
+			OneTemplate(jsonFile, out, filePattern, output)
+
+			err = os.Remove(out)
+			if err != nil {
+				return err
+			}
 
 			return nil
 		},
@@ -78,13 +92,51 @@ func main() {
 	}
 }
 
-func OneTemplate(pattern string, templateFile string, filePattern string, output string) {
-	datTempl, err := os.ReadFile(templateFile)
-	ext := filepath.Ext(templateFile)
+func replaceName(template string, name string, newText string) string {
+	return strings.Replace(template, "$"+name+"$", newText, -1)
+}
+func processTemplateFile(inputFilePath string) (string, error) {
+	processedDir, processedName := filepath.Split(inputFilePath)
+	outputFilePath := filepath.Join(processedDir, "processed_"+processedName)
+
+	inputFile, err := os.Open(inputFilePath)
 	if err != nil {
-		panic(err.Error())
+		return "", err
 	}
-	templ, err := md.ParseTemplate(datTempl)
+	defer inputFile.Close()
+
+	outputFile, err := os.Create(outputFilePath)
+	if err != nil {
+		return "", err
+	}
+	defer outputFile.Close()
+
+	scanner := bufio.NewScanner(inputFile)
+	var name, newText string
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "$$$ ") {
+			parts := strings.SplitN(line[4:], " ", 2)
+			if len(parts) == 2 {
+				name = parts[0]
+				newText = parts[1]
+			}
+		} else {
+			line = replaceName(line, name, newText)
+			_, _ = fmt.Fprintln(outputFile, line)
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return "", err
+	}
+
+	return outputFilePath, err
+}
+
+func OneTemplate(pattern string, templateFile string, filePattern string, output string) {
+	ext := filepath.Ext(templateFile)
+	templ, err := md.ParseTemplate(templateFile)
 
 	if err != nil {
 		panic(err)
