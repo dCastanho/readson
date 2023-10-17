@@ -56,10 +56,11 @@ func ConvertKey(key string) []string {
 	return keys
 }
 
-func JSONArrayEach(data []byte, forEach func(curr []byte)) error {
+func JSONArrayEach(data []byte, forEach func(curr []byte, t md.ElementType)) error {
 
 	r := func(value []byte, dataType jsonparser.ValueType, offset int, err error) {
-		forEach(value)
+		tt := fromJSONtoElement(dataType)
+		forEach(value, tt)
 	}
 
 	_, err := jsonparser.ArrayEach(data, r)

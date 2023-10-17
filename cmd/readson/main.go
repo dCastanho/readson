@@ -19,7 +19,6 @@ import (
 
 // TODO tests?
 // TODO Capitalize/Title functions
-// TODO Defines
 // TODO Documentation
 
 func main() {
@@ -53,6 +52,13 @@ func main() {
 				Usage: "Print logs to standard out",
 				// Required: true,
 			},
+			&cli.BoolFlag{
+				Name:    "keep",
+				Aliases: []string{"k"},
+				// Value: "template",
+				Usage: "Keep the pre-processed template",
+				// Required: true,
+			},
 		},
 		Action: func(cCtx *cli.Context) error {
 			jsonFile := cCtx.Args().Get(0)
@@ -71,6 +77,8 @@ func main() {
 			logger.DeployLogger(cCtx.Bool("verbose"), os.Stdout)
 
 			out, err := processTemplateFile(templFile)
+			// var err error
+			// out := templFile
 
 			if err != nil {
 				panic(err.Error())
@@ -78,9 +86,11 @@ func main() {
 
 			OneTemplate(jsonFile, out, filePattern, output)
 
-			err = os.Remove(out)
-			if err != nil {
-				return err
+			if !cCtx.Bool("keep") {
+				err = os.Remove(out)
+				if err != nil {
+					panic(err.Error())
+				}
 			}
 
 			return nil
@@ -92,12 +102,21 @@ func main() {
 	}
 }
 
-func replaceName(template string, name string, newText string) string {
-	return strings.Replace(template, "$"+name+"$", newText, -1)
+func replaceName(defines *map[string]string, line string) string {
+
+	curr := line
+	fmt.Println("Before:", curr)
+	for key, val := range *defines {
+		println("$" + key + "$")
+		curr = strings.Replace(curr, "$"+key+"$", val, -1)
+		fmt.Println(curr)
+	}
+	fmt.Println("After:", curr)
+	return curr
 }
 func processTemplateFile(inputFilePath string) (string, error) {
 	processedDir, processedName := filepath.Split(inputFilePath)
-	outputFilePath := filepath.Join(processedDir, "processed_"+processedName)
+	outputFilePath := filepath.Join(processedDir, "processed"+processedName)
 
 	inputFile, err := os.Open(inputFilePath)
 	if err != nil {
@@ -112,17 +131,21 @@ func processTemplateFile(inputFilePath string) (string, error) {
 	defer outputFile.Close()
 
 	scanner := bufio.NewScanner(inputFile)
-	var name, newText string
+
+	defines := make(map[string]string)
+	found := false
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, "$$$ ") {
+		if !found && strings.HasPrefix(line, "$$$ ") {
 			parts := strings.SplitN(line[4:], " ", 2)
 			if len(parts) == 2 {
-				name = parts[0]
-				newText = parts[1]
+				name := parts[0]
+				newText := parts[1]
+				defines[name] = newText
 			}
 		} else {
-			line = replaceName(line, name, newText)
+			found = true
+			line = replaceName(&defines, line)
 			_, _ = fmt.Fprintln(outputFile, line)
 		}
 	}

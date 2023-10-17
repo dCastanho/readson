@@ -119,7 +119,7 @@ type forNode struct {
 func (n *forNode) rangeFor(ctx *ASTContext, sb *strings.Builder, array []byte) {
 	i := 1
 
-	forEach := func(curr []byte) {
+	forEach := func(curr []byte, dataType ElementType) {
 
 		newGetter := func(data []byte, pattern string) (string, ElementType, error) {
 
@@ -130,14 +130,19 @@ func (n *forNode) rangeFor(ctx *ASTContext, sb *strings.Builder, array []byte) {
 			updated, usesItem := strings.CutPrefix(pattern, n.itemName)
 
 			if usesItem {
-				return ctx.Getter(curr, updated)
+				if updated != "" {
+					g, t, err := ctx.Getter(curr, updated)
+					return g, t, err
+				} else {
+					return string(curr), dataType, nil
+				}
 			} else {
 				return ctx.Getter(data, pattern)
 			}
 
 		}
 
-		s, err := n.loop.evaluate(&ASTContext{Data: ctx.Data, Getter: newGetter})
+		s, err := n.loop.evaluate(&ASTContext{Data: ctx.Data, Getter: newGetter, ArrayEach: ctx.ArrayEach, ObjectEach: ctx.ObjectEach})
 		i++
 
 		if err != nil {
@@ -170,7 +175,7 @@ func (n *forNode) propFor(ctx *ASTContext, sb *strings.Builder, object []byte) {
 
 		}
 
-		s, err := n.loop.evaluate(&ASTContext{Data: ctx.Data, Getter: newGetter})
+		s, err := n.loop.evaluate(&ASTContext{Data: ctx.Data, Getter: newGetter, ArrayEach: ctx.ArrayEach, ObjectEach: ctx.ObjectEach})
 
 		if err != nil {
 			panic(err.Error())
