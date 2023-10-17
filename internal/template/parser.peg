@@ -57,7 +57,7 @@ IfElse <- S "if" _ cond:OrCondition _ S _ tr:Seq os:(S "else" _ "if" _ OrConditi
 
 }
 
-If <- S "if" _ cond:OrCondition _ S _ tr:Seq _ f:(S "else" S _ Seq)? S "end" S {
+If <- S "if" _ cond:OrCondition _ S tr:Seq _ f:(S "else" S _ Seq)? S "end" S {
 	// condition, _ := (cond.c.string)
 	condition := cond.(condition)
 	trueClause, _:= tr.(node)
