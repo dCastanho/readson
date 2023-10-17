@@ -157,7 +157,7 @@ func (n *forNode) rangeFor(ctx *ASTContext, sb *strings.Builder, array []byte) {
 
 func (n *forNode) propFor(ctx *ASTContext, sb *strings.Builder, object []byte) {
 
-	forEach := func(prop string, val []byte) {
+	forEach := func(prop string, val []byte, dataType ElementType) {
 
 		newGetter := func(data []byte, pattern string) (string, ElementType, error) {
 
@@ -168,7 +168,11 @@ func (n *forNode) propFor(ctx *ASTContext, sb *strings.Builder, object []byte) {
 			updated, usesItem := strings.CutPrefix(pattern, n.itemName)
 
 			if usesItem {
-				return ctx.Getter(val, updated)
+				if updated != "" {
+					return ctx.Getter(val, updated)
+				} else {
+					return string(val), dataType, nil
+				}
 			} else {
 				return ctx.Getter(data, pattern)
 			}

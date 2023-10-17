@@ -67,11 +67,12 @@ func JSONArrayEach(data []byte, forEach func(curr []byte, t md.ElementType)) err
 	return err
 }
 
-func JSONObjectEach(data []byte, forEach func(prop string, val []byte)) error {
+func JSONObjectEach(data []byte, forEach func(prop string, val []byte, dataType md.ElementType)) error {
 
 	r := func(key []byte, value []byte, dataType jsonparser.ValueType, offset int) error {
 		prop := string(key)
-		forEach(prop, value)
+		dt := fromJSONtoElement(dataType)
+		forEach(prop, value, dt)
 		return nil
 	}
 

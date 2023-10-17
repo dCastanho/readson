@@ -8,7 +8,7 @@ type Getter func([]byte, string) (string, ElementType, error)
 
 type ArrayEach func(data []byte, forEach func(curr []byte, dataType ElementType)) error
 
-type ObjectEach func(data []byte, forEach func(prop string, val []byte)) error
+type ObjectEach func(data []byte, forEach func(prop string, val []byte, dataType ElementType)) error
 
 type Template struct {
 	top node

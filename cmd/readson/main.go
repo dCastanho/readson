@@ -17,9 +17,11 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// TODO math
 // TODO tests?
 // TODO Capitalize/Title functions
 // TODO Documentation
+// TODO extract - regular expression to extract stuff
 
 func main() {
 	app := &cli.App{
@@ -105,13 +107,9 @@ func main() {
 func replaceName(defines *map[string]string, line string) string {
 
 	curr := line
-	fmt.Println("Before:", curr)
 	for key, val := range *defines {
-		println("$" + key + "$")
 		curr = strings.Replace(curr, "$"+key+"$", val, -1)
-		fmt.Println(curr)
 	}
-	fmt.Println("After:", curr)
 	return curr
 }
 func processTemplateFile(inputFilePath string) (string, error) {
@@ -191,6 +189,7 @@ func OneTemplate(pattern string, templateFile string, filePattern string, output
 		} else if output != "" {
 			filename = output + ext
 		}
+		os.Remove(filename)
 		os.WriteFile(filename, []byte(res), fs.FileMode(os.O_CREATE))
 		i++
 		ctx = iterator()
