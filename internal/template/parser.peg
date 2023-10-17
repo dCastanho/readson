@@ -16,7 +16,7 @@ Start <- top:Seq EOF {
 } 
 
 
-Seq <- v:(( IfElse / If / For / TextBlock / Accessor ) Seq / "") {
+Seq <- v:(( IfElse / If / For / TextBlock / Function / Accessor ) Seq / "") {
 	vals, ok := toAnySlice(v)
 	if !ok {
 		return nil, nil
@@ -94,12 +94,25 @@ VarName <- [a-zA-Z]+ {
 }
 
 
-Accessor <- S t:AccessPattern S  {
+Accessor <- S f:(Function)? _ t:AccessPattern S  {
 	pattern := t.(string)
 
 	node := accessNode{accessPattern: pattern, baseNode: baseNode{child: nil}}
+
+
+	if f != nil {
+		function, _ := f.([]byte)
+		keyword := string(function)
+
+		if keyword == "capitalize" {
+			return &capitalizeNode{textNode: &node, baseNode: baseNode{child: nil}}, nil
+		} 
+	}
+
 	return &node, nil
 }
+
+Function <- "capitalize" 
 
 
 TextBlock <- t:Text {
@@ -259,6 +272,8 @@ Text <- [^$]+  {
 	text :=  string(c.text)
 	return text, nil
 }
+
+
 
 Special <- "for" / "if" / "range" / "props" / "exists" / "end" / "else" 
 

@@ -212,3 +212,21 @@ func (n *forNode) evaluate(ctx *ASTContext) (string, error) {
 	loopString := sb.String()
 	return n.withChild(loopString, ctx)
 }
+
+type capitalizeNode struct {
+	baseNode
+	textNode node
+}
+
+func (n *capitalizeNode) evaluate(ctx *ASTContext) (string, error) {
+	text, err := n.textNode.evaluate(ctx)
+
+	if err != nil {
+		return "", err
+	}
+
+	first := string(text[0])
+	text = strings.ToUpper(first) + text[1:]
+
+	return n.withChild(text, ctx)
+}
