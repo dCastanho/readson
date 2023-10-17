@@ -43,6 +43,21 @@ func convertOperator(operator string) operatorType {
 	return 0
 }
 
+func convertType(text string) ElementType {
+	if text == "array" {
+		return Array
+	} else if text == "object" {
+		return Object
+	} else if text == "number" {
+		return Number
+	} else if text == "string" {
+		return String
+	} else if text == "bool" {
+		return Boolean
+	}
+	return NotExists
+}
+
 type condition interface {
 	eval(ctx *ASTContext) (bool, error)
 }
@@ -349,4 +364,14 @@ type existsCondition struct {
 func (n existsCondition) eval(ctx *ASTContext) (bool, error) {
 	_, t, _ := ctx.Getter(ctx.Data, n.pattern)
 	return t != NotExists, nil
+}
+
+type ofType struct {
+	pattern string
+	typeOf  ElementType
+}
+
+func (n ofType) eval(ctx *ASTContext) (bool, error) {
+	_, t, _ := ctx.Getter(ctx.Data, n.pattern)
+	return t == n.typeOf, nil
 }

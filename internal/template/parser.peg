@@ -155,7 +155,7 @@ AndCondition <- base:Condition os:( _ "and" _  Condition)* {
 
 }
 
-Condition <- e:( Exists / FromElements / ("!")? GroupedCondition) {
+Condition <- e:( OfType / Exists / FromElements / ("!")? GroupedCondition) {
 
 	elems, isGroup := toAnySlice(e)
 
@@ -173,6 +173,15 @@ Condition <- e:( Exists / FromElements / ("!")? GroupedCondition) {
 	return cond, nil 
 	
 }
+
+OfType <- p:AccessPattern _ "isa" _ e:TypeExpression {
+	elemType, _ := e.([]byte)
+	strType := string(elemType)
+	pattern, _ := p.(string)
+	return ofType{pattern: pattern, typeOf: convertType(strType)}, nil
+}
+
+TypeExpression <- "array" / "object" / "number" / "string" / "bool" 
 
 Exists <- "exists" _ p:AccessPattern {
 	pattern, _ := p.(string)

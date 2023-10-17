@@ -19,8 +19,6 @@ import (
 // TODO Capitalize/Title functions
 // TODO Defines
 // TODO Documentation
-// TODO nicer if else
-// TODO add type comparisons
 
 func main() {
 	app := &cli.App{
