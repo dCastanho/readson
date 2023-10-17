@@ -16,7 +16,7 @@ Start <- top:Seq EOF {
 } 
 
 
-Seq <- v:(( If / For / TextBlock / Accessor ) Seq / "") {
+Seq <- v:(( IfElse / If / For / TextBlock / Accessor ) Seq / "") {
 	vals, ok := toAnySlice(v)
 	if !ok {
 		return nil, nil
@@ -29,6 +29,33 @@ Seq <- v:(( If / For / TextBlock / Accessor ) Seq / "") {
 		return left, nil	
 	}	
 }   
+
+IfElse <- S "if" _ cond:OrCondition _ S _ tr:Seq os:(S "else" _ "if" _ OrCondition _ S _ Seq _)+ el:(S _ "else" _ S  _ Seq _ )? S "end" S {
+	other, _ := toAnySlice(os)
+	topCondition, _ := cond.(condition)
+	topTrue, _ := tr.(node)
+
+	top := &ifNode{condition: topCondition, trueClause: topTrue, baseNode: baseNode{child:nil}}
+	toRet := top 
+
+	for _, elseClause := range other {
+		elseClauseElems, _ := toAnySlice(elseClause)
+		elseCondition, _ := elseClauseElems[5].(condition)
+		elseTrue, _ := elseClauseElems[9].(node)
+		elseNode := &ifNode{condition: elseCondition, trueClause: elseTrue, baseNode: baseNode{child:nil}}
+		top.falseClause = elseNode
+		top = elseNode
+	}	
+
+	if el != nil {
+		elems, _ := toAnySlice(el)
+		falseClause, _ := elems[6].(node)
+		top.falseClause = falseClause	
+	}
+
+	return toRet, nil 
+
+}
 
 If <- S "if" _ cond:OrCondition _ S _ tr:Seq  f:(S "else" S _ Seq)? S "end" S {
 	// condition, _ := (cond.c.string)
