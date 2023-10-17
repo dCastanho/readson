@@ -124,7 +124,7 @@ func (n *forNode) rangeFor(ctx *ASTContext, sb *strings.Builder, array []byte) {
 		newGetter := func(data []byte, pattern string) (string, ElementType, error) {
 
 			if pattern == n.indexName {
-				return strconv.Itoa(i), String, nil
+				return strconv.Itoa(i), Number, nil
 			}
 
 			updated, usesItem := strings.CutPrefix(pattern, n.itemName)
