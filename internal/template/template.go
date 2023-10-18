@@ -2,6 +2,8 @@ package parser
 
 import (
 	"errors"
+
+	"github.com/robertkrimen/otto"
 )
 
 type Getter func([]byte, string) (string, ElementType, error)
@@ -37,4 +39,11 @@ func ParseTemplate(templateName string) (*Template, error) {
 
 func ApplyTemplate(template *Template, ctx *ASTContext) (string, error) {
 	return template.top.evaluate(ctx)
+}
+
+func SetupUserFunctions(text string) error {
+	VM = otto.New()
+
+	_, err := VM.Run(text)
+	return err
 }

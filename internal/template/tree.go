@@ -193,7 +193,7 @@ func (n *forNode) propFor(ctx *ASTContext, sb *strings.Builder, object []byte) {
 
 func (n *forNode) evaluate(ctx *ASTContext) (string, error) {
 	// sb := strings.Builder{}
-	logger.DefaultLogger.Node("For:", n.forType)
+	logger.DefaultLogger.Node("For:", n.pattern)
 
 	a, _, err := ctx.Getter(ctx.Data, n.pattern)
 

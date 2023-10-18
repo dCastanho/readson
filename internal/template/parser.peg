@@ -16,7 +16,7 @@ Start <- top:Seq EOF {
 } 
 
 
-Seq <- v:(( IfElse / If / For / TextBlock / Function / Accessor ) Seq / "") {
+Seq <- v:(( IfElse / If / For / TextBlock / Accessor ) Seq / "") {
 	vals, ok := toAnySlice(v)
 	if !ok {
 		return nil, nil
@@ -93,27 +93,44 @@ VarName <- [a-zA-Z]+ {
 	return varName, nil
 }
 
+// Extract <- "extract" _ VarName ("," _ VarName)* _ regex
 
-Accessor <- S f:(Function)? _ t:AccessPattern S  {
+
+Accessor <- S f:(Function) S  {
+	return f, nil
+}
+
+AccessPatternNode <- t:AccessPattern {
 	pattern := t.(string)
 
 	node := accessNode{accessPattern: pattern, baseNode: baseNode{child: nil}}
-
-
-	if f != nil {
-		function, _ := f.([]byte)
-		keyword := string(function)
-
-		if keyword == "capitalize" {
-			return &capitalizeNode{textNode: &node, baseNode: baseNode{child: nil}}, nil
-		} 
-	}
-
 	return &node, nil
 }
 
-Function <- "capitalize" 
+UserFunction <- n:VarName "(" _ p:( Function ("," _ Function)*)? _  ")" {
 
+	fmt.Println(p)
+
+	name, _ := n.(string)
+	paramsAny, _ := toAnySlice(p)
+	firstParam, _ := paramsAny[0].(node)
+	restAny, _ := toAnySlice(paramsAny[1])
+
+	functionParams := []node{firstParam}
+
+	for _, param := range restAny {
+		paramNode, isNode := param.(node)
+		if isNode {
+			functionParams = append(functionParams, paramNode)
+		}
+	} 	
+
+	return &userFunc{ baseNode: baseNode{child: nil}, name: name, parameters: functionParams}, nil 
+} 
+
+Function <- f:(UserFunction / AccessPatternNode) {
+	return f, nil 
+}
 
 TextBlock <- t:Text {
 	text := t.(string)

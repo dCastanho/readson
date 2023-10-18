@@ -47,6 +47,12 @@ func main() {
 				// Value: "template",
 				Usage: "Output to a single file `OUTPUT`",
 			},
+			&cli.StringFlag{
+				Name:    "functions",
+				Aliases: []string{"f"},
+				// Value: "template",
+				Usage: "javascript `FILE` with user custom functions",
+			},
 			&cli.BoolFlag{
 				Name:    "verbose",
 				Aliases: []string{"v"},
@@ -76,6 +82,14 @@ func main() {
 				panic("Cannot assign both a name pattern and an output file")
 			}
 
+			functionsFile := cCtx.String("functions")
+			fmt.Println(functionsFile)
+			err := SetupFunctions(functionsFile)
+
+			if err != nil {
+				panic(err.Error())
+			}
+
 			logger.DeployLogger(cCtx.Bool("verbose"), os.Stdout)
 
 			out, err := processTemplateFile(templFile)
@@ -102,6 +116,17 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func SetupFunctions(jsFile string) error {
+	dat, err := os.ReadFile(jsFile)
+	if err != nil {
+		return err
+	}
+
+	text := string(dat)
+	err = md.SetupUserFunctions(text)
+	return err
 }
 
 func replaceName(defines *map[string]string, line string) string {

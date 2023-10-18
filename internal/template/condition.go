@@ -92,8 +92,6 @@ func (c andCondition) eval(ctx *ASTContext) (bool, error) {
 		return false, err
 	}
 
-	fmt.Println("L", left)
-
 	if !left {
 		return false, nil
 	}
