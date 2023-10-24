@@ -1,32 +1,40 @@
 package parser
 
 import (
-	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
 	"dcastanho.readson/internal/logger"
 )
 
+// node is a node in the AST tree, evaluate returns the interpreted
+// text (replacements and flows executed) of itself and all its 'next's
 type node interface {
 	evaluate(ctx *ASTContext) (string, error)
 	next() node
 	setNext(n node)
 }
 
+// baseNode serves to provide the next functionality to all nodes, due to
+// being present regardless of its type
 type baseNode struct {
+	// child is the node to evaluate next
 	child node
 }
 
+// returns the next node to evaluate
 func (b *baseNode) next() node {
 	return b.child
 }
 
+// setNext sets the next node to evaluate
 func (b *baseNode) setNext(n node) {
 	b.child = n
 }
 
+// withChild receives a string and if the node has a next, evaluates it and
+// concatenates the two strings. This proceess is common across all nodes -
+// they evaluate themselves, and then the next one, returning the concatenation.
 func (b *baseNode) withChild(def string, ctx *ASTContext) (string, error) {
 
 	if b.child == nil {
@@ -40,11 +48,16 @@ func (b *baseNode) withChild(def string, ctx *ASTContext) (string, error) {
 	}
 }
 
+// textNode is a node which represents plain text, to be printed in the same way
+// as it was in the provided template
 type textNode struct {
 	baseNode
+
+	// text in the template
 	text string
 }
 
+// evaluate of a textNode returns the stored text + the evaluated text of its proceeding nodes
 func (n *textNode) evaluate(ctx *ASTContext) (string, error) {
 	thisText := n.text
 
@@ -54,30 +67,49 @@ func (n *textNode) evaluate(ctx *ASTContext) (string, error) {
 	return result, err
 }
 
+// accessNode represents the access to a variable - be it a function, data access or a constant
 type accessNode struct {
 	baseNode
-	accessPattern string
+
+	// accessorElement is the element generated from the template
+	// it is from where the string of this node is extracted
+	accessorElement element
 }
 
+// evaluate of an accessNode fetches the string value of the variable + the evaluated text of its
+// proceeding nodes
 func (n accessNode) evaluate(ctx *ASTContext) (string, error) {
 
-	logger.DefaultLogger.Node("Variable Access:", n.accessPattern)
+	logger.DefaultLogger.Node("Acessor Block:")
 
-	s, _, err := ctx.Getter(ctx.Data, n.accessPattern)
+	v, err := n.accessorElement.stringValue(ctx)
+
 	if err != nil {
-		return "", errors.New(fmt.Sprintf("Access pattern '%s' is invalid", n.accessPattern))
+		return "", err
 	}
-	result, err := n.withChild(s, ctx)
+
+	result, err := n.withChild(v, ctx)
 	return result, err
 }
 
+// ifNode represents an if in the text, which has a condition and two children nodes.
+// If the condition evaluates to true, the trueClause child is evaluated.
+// If the condition evaluates to false, the falseClause child is evaluated.
 type ifNode struct {
 	baseNode
-	condition   condition
-	trueClause  node
+
+	// condition of the if
+	condition condition
+
+	// trueClause is evaluated if condition
+	trueClause node
+
+	// falseClause is evaluated if !condition
 	falseClause node
 }
 
+// evaluate on ifNode checks the condition and evaluates the correct child,
+// depending on the result
 func (n *ifNode) evaluate(ctx *ASTContext) (string, error) {
 
 	logger.DefaultLogger.Node("If")
@@ -94,6 +126,7 @@ func (n *ifNode) evaluate(ctx *ASTContext) (string, error) {
 
 	if result {
 		clause, err = n.trueClause.evaluate(ctx)
+
 	} else if n.falseClause != nil {
 		clause, err = n.falseClause.evaluate(ctx)
 	}
@@ -107,16 +140,22 @@ func (n *ifNode) evaluate(ctx *ASTContext) (string, error) {
 
 }
 
+// forNode represents the execution of a loop in the template. It always has two associated variables,
+// which vary depending on the type of loop. It is an iterative loop, which evaluates its child for every
+// member of the element it is iterating
 type forNode struct {
 	baseNode
 	itemName  string
 	indexName string
-	pattern   string
+	pattern   element
 	loop      node
 	forType   bool
 }
 
-func (n *forNode) rangeFor(ctx *ASTContext, sb *strings.Builder, array []byte) {
+// rangeFor is the execution of a for node according to the iteration of array (represented by a slice of bytes)
+// it returns the evaluation of the child node for each element of the array
+func (n *forNode) rangeFor(ctx *ASTContext, array []byte) string {
+	sb := strings.Builder{}
 	i := 1
 
 	forEach := func(curr []byte, dataType ElementType) {
@@ -153,9 +192,13 @@ func (n *forNode) rangeFor(ctx *ASTContext, sb *strings.Builder, array []byte) {
 	}
 
 	ctx.ArrayEach(array, forEach)
+	return sb.String()
 }
 
-func (n *forNode) propFor(ctx *ASTContext, sb *strings.Builder, object []byte) {
+// propFor is the execution of a forNode in the context of property iteration of an object.
+// It evaluates the loop node for each property of the given object and returns the result.
+func (n *forNode) propFor(ctx *ASTContext, object []byte) string {
+	sb := strings.Builder{}
 
 	forEach := func(prop string, val []byte, dataType ElementType) {
 
@@ -189,44 +232,28 @@ func (n *forNode) propFor(ctx *ASTContext, sb *strings.Builder, object []byte) {
 	}
 
 	ctx.ObjectEach(object, forEach)
+	return sb.String()
 }
 
+// evaluate on a forNode checks which kind of for it is (range vs props) and
+// performs the necessary loop, evaluating its loop node for each element in the iterable
+// and returning the concatenation.
 func (n *forNode) evaluate(ctx *ASTContext) (string, error) {
-	// sb := strings.Builder{}
 	logger.DefaultLogger.Node("For:", n.pattern)
 
-	a, _, err := ctx.Getter(ctx.Data, n.pattern)
+	a, err := n.pattern.stringValue(ctx)
 
 	if err != nil {
 		return "", err
 	}
 
 	iterable := []byte(a)
-	sb := strings.Builder{}
+	var loopString string
 
 	if n.forType {
-		n.rangeFor(ctx, &sb, iterable)
+		loopString = n.rangeFor(ctx, iterable)
 	} else {
-		n.propFor(ctx, &sb, iterable)
+		loopString = n.propFor(ctx, iterable)
 	}
-	loopString := sb.String()
 	return n.withChild(loopString, ctx)
-}
-
-type capitalizeNode struct {
-	baseNode
-	textNode node
-}
-
-func (n *capitalizeNode) evaluate(ctx *ASTContext) (string, error) {
-	text, err := n.textNode.evaluate(ctx)
-
-	if err != nil {
-		return "", err
-	}
-
-	first := string(text[0])
-	text = strings.ToUpper(first) + text[1:]
-
-	return n.withChild(text, ctx)
 }

@@ -16,6 +16,7 @@ Start <- top:Seq EOF {
 } 
 
 
+// Seq <- v:(( IfElse / If / For / TextBlock / Accessor ) Seq / "") {
 Seq <- v:(( IfElse / If / For / TextBlock / Accessor ) Seq / "") {
 	vals, ok := toAnySlice(v)
 	if !ok {
@@ -30,18 +31,54 @@ Seq <- v:(( IfElse / If / For / TextBlock / Accessor ) Seq / "") {
 	}	
 }   
 
-IfElse <- S "if" _ cond:OrCondition _ S _ tr:Seq os:(S "else" _ "if" _ OrCondition _ S _ Seq _)+ el:(S _ "else" _ S  _ Seq _ )? S "end" S {
-	other, _ := toAnySlice(os)
-	topCondition, _ := cond.(condition)
-	topTrue, _ := tr.(node)
+TextBlock <- t:Text {
+	text := t.(string)
+	node := textNode{text: text, baseNode: baseNode {child: nil}}
+	return &node, nil
+}
+
+
+Accessor <- S _  e:Element _ S {
+	elem := e.(element)
+	return &accessNode{accessorElement:elem, baseNode: baseNode{child:nil}}, nil 
+}
+
+// Function
+Element <- e:(Constant / UserFunction / AccessElement ) {
+	return e, nil 
+}
+
+
+AccessElement <- !(Special / S) ([a-zA-Z0-9] / "->" / "[" / "]")+ {
+	text := string(c.text)
+	return accessElement{pattern: text}, nil
+
+}
+
+IfElse <- S _ "if" _ cond:OrCondition _ S _ tr:Seq os:(S _ "else" _ "if" _ OrCondition _ S _ Seq _)+ el:(S _ "else" _ S  _ Seq _ )? S _ "end" _  S {
+	other, _  := toAnySlice(os)
+	topCondition := cond.(condition)
+	topTrue := tr.(node)
+
 
 	top := &ifNode{condition: topCondition, trueClause: topTrue, baseNode: baseNode{child:nil}}
 	toRet := top 
 
 	for _, elseClause := range other {
+		
+		var elseTrue node 
+		var elseCondition condition 
 		elseClauseElems, _ := toAnySlice(elseClause)
-		elseCondition, _ := elseClauseElems[5].(condition)
-		elseTrue, _ := elseClauseElems[9].(node)
+
+		for _, elem := range elseClauseElems {
+			if elseCondition == nil {
+				elseCondition, _ = elem.(condition)
+			} else if elseTrue == nil {
+				elseTrue, _ = elem.(node) 
+			} 
+		}
+
+		
 		elseNode := &ifNode{condition: elseCondition, trueClause: elseTrue, baseNode: baseNode{child:nil}}
 		top.falseClause = elseNode
 		top = elseNode
@@ -49,7 +86,14 @@ IfElse <- S "if" _ cond:OrCondition _ S _ tr:Seq os:(S "else" _ "if" _ OrConditi
 
 	if el != nil {
 		elems, _ := toAnySlice(el)
-		falseClause, _ := elems[6].(node)
+		var falseClause node 
+
+		for _, e := range elems {
+			if falseClause == nil {
+				falseClause, _ = e.(node)
+			}
+		}
+
 		top.falseClause = falseClause	
 	}
 
@@ -57,10 +101,9 @@ IfElse <- S "if" _ cond:OrCondition _ S _ tr:Seq os:(S "else" _ "if" _ OrConditi
 
 }
 
-If <- S "if" _ cond:OrCondition _ S tr:Seq _ f:(S "else" S _ Seq)? S "end" S {
-	// condition, _ := (cond.c.string)
+If <- S _ "if" _ cond:OrCondition _ S tr:Seq _ f:(S _ "else" _ S _ Seq)? S _ "end" _ S {
 	condition := cond.(condition)
-	trueClause, _:= tr.(node)
+	trueClause := tr.(node)
 	var falseClause node 
 
 	if f != nil { 
@@ -72,13 +115,14 @@ If <- S "if" _ cond:OrCondition _ S tr:Seq _ f:(S "else" S _ Seq)? S "end" S {
 	return &node, nil 
 }
 
-For <- S "for" _ vars:ForVars _ "=" _ t:("range" / "props") _ p:AccessPattern _ S _ l:Seq S "end" S {
-	stringVars, _ := vars.([]string)
-	loop, _ := l.(node)
-	forT := string(t.([]byte))
-	pattern, _ := p.(string)
+For <- S _ "for" _ vars:ForVars _ "=" _ t:("range" / "props") _ p:Element _ S _ l:Seq S _ "end" _ S {
+	stringVars := vars.([]string)
+	loop := l.(node)
+	element := p.(element)
 
-	foraa := forNode{ forType: forT == "range", itemName: stringVars[1], indexName: stringVars[0], pattern: pattern, loop: loop, baseNode : baseNode{child: nil}} 
+	forType := string(t.([]byte))
+
+	foraa := forNode{ forType: forType == "range", itemName: stringVars[1], indexName: stringVars[0], pattern: element, loop: loop, baseNode : baseNode{child: nil}} 
 	return &foraa, nil
 }
 
@@ -93,50 +137,27 @@ VarName <- [a-zA-Z]+ {
 	return varName, nil
 }
 
-// Extract <- "extract" _ VarName ("," _ VarName)* _ regex
+// // Extract <- "extract" _ VarName ("," _ VarName)* _ regex
 
 
-Accessor <- S f:(Function) S  {
-	return f, nil
-}
-
-AccessPatternNode <- t:AccessPattern {
-	pattern := t.(string)
-
-	node := accessNode{accessPattern: pattern, baseNode: baseNode{child: nil}}
-	return &node, nil
-}
-
-UserFunction <- n:VarName "(" _ p:( Function ("," _ Function)*)? _  ")" {
-
-	fmt.Println(p)
+UserFunction <- n:VarName "(" _ p:( Element  ("," _ Element)*)? _  ")" {
 
 	name, _ := n.(string)
 	paramsAny, _ := toAnySlice(p)
-	firstParam, _ := paramsAny[0].(node)
+	firstParam, _ := paramsAny[0].(element)
 	restAny, _ := toAnySlice(paramsAny[1])
 
-	functionParams := []node{firstParam}
+	functionParams := []element{firstParam}
 
 	for _, param := range restAny {
-		paramNode, isNode := param.(node)
+		paramNode, isNode := param.(element)
 		if isNode {
 			functionParams = append(functionParams, paramNode)
 		}
 	} 	
 
-	return &userFunc{ baseNode: baseNode{child: nil}, name: name, parameters: functionParams}, nil 
+	return &userFunc{ name: name, parameters: functionParams}, nil 
 } 
-
-Function <- f:(UserFunction / AccessPatternNode) {
-	return f, nil 
-}
-
-TextBlock <- t:Text {
-	text := t.(string)
-	node := textNode{text: text, baseNode: baseNode {child: nil}}
-	return &node, nil
-}
 
 
 OrCondition <- base:AndCondition os:( _ "or"  _ AndCondition)* {
@@ -204,18 +225,18 @@ Condition <- e:( OfType / Exists / FromElements / ("!")? GroupedCondition) {
 	
 }
 
-OfType <- p:AccessPattern _ "isa" _ e:TypeExpression {
+OfType <-  el:Element _ "isa" _ e:TypeExpression {
 	elemType, _ := e.([]byte)
 	strType := string(elemType)
-	pattern, _ := p.(string)
-	return ofType{pattern: pattern, typeOf: convertType(strType)}, nil
+	elem, _ := el.(element)
+	return ofType{element: elem, typeOf: convertType(strType)}, nil
 }
 
 TypeExpression <- "array" / "object" / "number" / "string" / "bool" 
 
-Exists <- "exists" _ p:AccessPattern {
-	pattern, _ := p.(string)
-	return existsCondition{pattern: pattern}, nil
+Exists <- "exists" _ p:Element {
+	element, _ := p.(element)
+	return existsCondition{element: element}, nil
 }
 
 
@@ -223,7 +244,7 @@ GroupedCondition <- "(" _ cond:OrCondition _ ")" {
 	return cond, nil 
 }
 
-FromElements <- e:(ConditionElement _ Operator _ ConditionElement / ("!"?) ConditionElement) {
+FromElements <- e:(Element _ Operator _ Element / ("!"?) Element) {
 	elems, _ := toAnySlice(e)
 
 	isOperation := len(elems) == 5
@@ -257,40 +278,12 @@ FromElements <- e:(ConditionElement _ Operator _ ConditionElement / ("!"?) Condi
 	return nil, errors.New("Invalid condition")
 }
 
-ConditionElement <- e:(Constant / AccessElement ) {
-	return e, nil
-}
-
-
 Operator <- "=" / "<=" / ">=" / "<" / ">" / "!="
-
-Constant <- ('"' [^$"()]+ '"' / "-"? [0-9]+("." [0-9]+)? / "true" / "false") { 
-	text := string(c.text)
-	val, tpe, err := textToElem(text)
-	if err != nil {
-		return "", err 
-	}
-
-	return constantElement{constant: val, constType: tpe}, nil 
-
-}
-
-AccessElement <- t:AccessPattern {
-	pattern, _ := t.(string)
-	return accessElement{pattern: pattern}, nil
-}
- 
-AccessPattern <- !(Special / S) ([a-zA-Z0-9] / "->" / "[" / "]")+ {
-	text := string(c.text)
-	return text, nil
-}
 
 Text <- [^$]+  {
 	text :=  string(c.text)
 	return text, nil
 }
-
-
 
 Special <- "for" / "if" / "range" / "props" / "exists" / "end" / "else" 
 
@@ -299,6 +292,13 @@ S <- "$"
 _ "whitespace" <- [ \t\r\n]*
 
 EOF <- !.
+
+
+Constant <- ('"' [^"]* '"' / "-"? [0-9]+("." [0-9]+)? / "true" / "false") { 
+	text := string(c.text)
+	return constantElement{constant: text}, nil 
+
+}
 
 
 

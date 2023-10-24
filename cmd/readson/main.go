@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -19,9 +18,12 @@ import (
 
 // TODO math
 // TODO tests?
-// TODO Capitalize/Title functions
+// TODO functions in conditions
 // TODO Documentation
-// TODO extract - regular expression to extract stuff
+// TODO check correctness of current grammar - can it be reduced/optimized? <-
+// TODO make blocks nicer to use
+// TODO make errors nicer if possible
+// TODO better logging when possible
 
 func main() {
 	app := &cli.App{
@@ -83,18 +85,19 @@ func main() {
 			}
 
 			functionsFile := cCtx.String("functions")
-			fmt.Println(functionsFile)
-			err := SetupFunctions(functionsFile)
 
-			if err != nil {
-				panic(err.Error())
+			if functionsFile != "" {
+				fmt.Println(functionsFile)
+				err := SetupFunctions(functionsFile)
+
+				if err != nil {
+					panic(err.Error())
+				}
 			}
 
 			logger.DeployLogger(cCtx.Bool("verbose"), os.Stdout)
 
 			out, err := processTemplateFile(templFile)
-			// var err error
-			// out := templFile
 
 			if err != nil {
 				panic(err.Error())
@@ -207,6 +210,7 @@ func OneTemplate(pattern string, templateFile string, filePattern string, output
 		} else if pattern != "" {
 			dir, pattern := filepath.Split(filePattern)
 			filename, _, err = ctx.Getter(ctx.Data, pattern)
+
 			filename = dir + filename + ext
 			if err != nil {
 				panic(err.Error())
@@ -214,8 +218,10 @@ func OneTemplate(pattern string, templateFile string, filePattern string, output
 		} else if output != "" {
 			filename = output + ext
 		}
+
 		os.Remove(filename)
-		os.WriteFile(filename, []byte(res), fs.FileMode(os.O_CREATE))
+		os.WriteFile(filename, []byte(res), 0644)
+
 		i++
 		ctx = iterator()
 	}

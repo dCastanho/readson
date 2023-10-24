@@ -5,17 +5,23 @@ import (
 	"fmt"
 	"strings"
 
-	"dcastanho.readson/internal/logger"
 	"github.com/robertkrimen/otto"
 )
 
 var VM *otto.Otto // All functions assume it has been initialized
 
 type userFunc struct {
-	baseNode
 	name       string
-	parameters []node
+	parameters []element
 }
+
+// Returns the value, given a context ctx (in case variable accesses are necessary) and
+// its element type.
+// value(ctx *ASTContext) (any, ElementType, error)
+
+// // stringValue returns a string representation of the value, particularly useful during
+// // node evaluation
+// stringValue(ctx *ASTContext) (string, error)
 
 func (f userFunc) call(ctx *ASTContext) (*otto.Value, error) {
 
@@ -33,7 +39,7 @@ func (f userFunc) call(ctx *ASTContext) (*otto.Value, error) {
 			sb.WriteRune(',')
 		}
 
-		parameter, err := par.evaluate(ctx)
+		parameter, _, err := par.value(ctx)
 
 		if err != nil {
 			return nil, err
@@ -44,34 +50,49 @@ func (f userFunc) call(ctx *ASTContext) (*otto.Value, error) {
 
 	sb.WriteRune(')')
 	funcCall := sb.String()
-	fmt.Println(funcCall)
-
-	fmt.Println(VM)
 
 	result, err := VM.Run(funcCall)
-	fmt.Println(result, err)
 	return &result, err
 }
 
-func (f userFunc) evaluate(ctx *ASTContext) (string, error) {
-
-	logger.DefaultLogger.Node("Function: " + f.name)
-
-	res, err := f.call(ctx)
-
-	if err != nil {
-		return "", err
+func ottoToElemType(v *otto.Value) ElementType {
+	if v.IsBoolean() {
+		return Boolean
+	} else if v.IsString() {
+		return String
+	} else if v.IsNumber() {
+		return Number
+	} else if v.IsObject() {
+		return Object
 	}
+	return NotExists
 
-	return f.withChild((*res).String(), ctx)
 }
 
-func (f userFunc) eval(ctx *ASTContext) (bool, error) {
-	res, err := f.call(ctx)
-
+// Returns the type of element that it is
+func (f userFunc) typeof(ctx *ASTContext) ElementType {
+	v, err := f.call(ctx)
 	if err != nil {
-		return false, err
+		return NotExists
 	}
 
-	return res.ToBoolean()
+	return ottoToElemType(v)
+}
+
+// Returns the value, given a context ctx (in case variable accesses are necessary) and
+// its element type.
+func (f userFunc) value(ctx *ASTContext) (any, ElementType, error) {
+	v, err := f.call(ctx)
+	if err != nil {
+		return nil, NotExists, err
+	}
+
+	return v.String(), ottoToElemType(v), nil
+}
+
+// Returns the value, given a context ctx (in case variable accesses are necessary) and
+// its element type.
+func (f userFunc) stringValue(ctx *ASTContext) (string, error) {
+	v, _, e := f.value(ctx)
+	return v.(string), e
 }
