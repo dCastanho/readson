@@ -18,8 +18,6 @@ import (
 
 // TODO math
 // TODO tests?
-// TODO functions in conditions
-// TODO Documentation
 // TODO check correctness of current grammar - can it be reduced/optimized? <-
 // TODO make blocks nicer to use
 // TODO make errors nicer if possible

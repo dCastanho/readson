@@ -55,28 +55,27 @@ func (f userFunc) call(ctx *ASTContext) (*otto.Value, error) {
 	return &result, err
 }
 
-func ottoToElemType(v *otto.Value) ElementType {
+func ottoToElemType(v *otto.Value) (any, ElementType, error) {
+
+	var val any
+	var tpe ElementType
+	var err error
+
 	if v.IsBoolean() {
-		return Boolean
+		val, err = v.ToBoolean()
+		tpe = Boolean
 	} else if v.IsString() {
-		return String
+		val, err = v.ToString()
+		tpe = String
 	} else if v.IsNumber() {
-		return Number
+		val, err = v.ToFloat()
+		tpe = Number
 	} else if v.IsObject() {
-		return Object
-	}
-	return NotExists
-
-}
-
-// Returns the type of element that it is
-func (f userFunc) typeof(ctx *ASTContext) ElementType {
-	v, err := f.call(ctx)
-	if err != nil {
-		return NotExists
+		val, err = v.ToString()
+		tpe = Object
 	}
 
-	return ottoToElemType(v)
+	return val, tpe, err
 }
 
 // Returns the value, given a context ctx (in case variable accesses are necessary) and
@@ -87,7 +86,7 @@ func (f userFunc) value(ctx *ASTContext) (any, ElementType, error) {
 		return nil, NotExists, err
 	}
 
-	return v.String(), ottoToElemType(v), nil
+	return ottoToElemType(v)
 }
 
 // Returns the value, given a context ctx (in case variable accesses are necessary) and

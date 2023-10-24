@@ -142,6 +142,7 @@ VarName <- [a-zA-Z]+ {
 
 UserFunction <- n:VarName "(" _ p:( Element  ("," _ Element)*)? _  ")" {
 
+
 	name, _ := n.(string)
 	paramsAny, _ := toAnySlice(p)
 	firstParam, _ := paramsAny[0].(element)
