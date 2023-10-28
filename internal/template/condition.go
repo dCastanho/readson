@@ -159,7 +159,7 @@ func (c operatorCondition) eval(ctx *ASTContext) (bool, error) {
 		return false, err
 	}
 
-	v2, tpe2, err := c.left.value(ctx)
+	v2, tpe2, err := c.right.value(ctx)
 
 	if err != nil {
 		return false, err
@@ -206,7 +206,9 @@ type existsCondition struct {
 // constants will always return true.
 func (n existsCondition) eval(ctx *ASTContext) (bool, error) {
 	_, tpe, err := n.element.value(ctx)
-	return tpe != NotExists && err != nil, nil
+
+	res := tpe != NotExists && err == nil
+	return res, nil
 }
 
 // ofType checks whether a given element is of a certain type.

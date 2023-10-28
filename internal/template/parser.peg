@@ -9,6 +9,50 @@ func toAnySlice(v any) ([]any, bool) {
 	newV, ok := v.([]any)
 	return newV, ok
 }
+
+
+func findOperator(elems []any) mathOperator {
+	fmt.Println(elems)
+	for _, e := range elems {
+		b, isByte := e.([]byte)
+
+		if isByte {
+			operator := textToOperator(b[0])
+			if operator != invalid {
+				return operator
+			}
+		}
+	}
+	
+	return invalid
+
+}
+
+func expressionProcessor(t, f any) (any, error) {
+
+	term := t.(element)
+	operations, _ := toAnySlice(f)
+
+	if operations == nil {
+		return term, nil
+	}
+
+	curr := term
+
+	for _, oper := range operations {
+		elems, _ := toAnySlice(oper)
+		operator := findOperator(elems)
+		right := elems[len(elems)-1].(element)
+		temp := expression{left: curr, right: right, operation: operator}
+		curr = temp
+	}
+
+	return curr, nil
+
+}
+
+
+
 }
 
 Start <- top:Seq EOF {
@@ -44,9 +88,40 @@ Accessor <- S _  e:Element _ S {
 }
 
 // Function
-Element <- e:(Constant / UserFunction / AccessElement ) {
+Element <- e:( Expression / Constant /  UserFunction / AccessElement  ) {
 	return e, nil 
 }
+
+NonMathElement <- e:(Constant / UserFunction / AccessElement ) {
+	return e, nil 
+}
+
+Expression <- t:Term _ f:(Addition / Subtraction)* {
+	return expressionProcessor(t, f)
+}
+
+// Expression <- NonMathElement _ "+" _ NonMathElement
+
+
+Term <- t:Factor _ f:(Multiplication / Division)* {
+	return expressionProcessor(t, f)
+}
+
+Factor <- NonMathElement / GroupedExpression
+
+GroupedExpression <- "(" _  e:Expression _ ")" {
+	return e, nil 
+} 
+
+Addition <- _ "+" _ Term
+
+Subtraction <- _ "-" _ Term
+
+Multiplication <- _ "*" _ Factor
+
+Division <- _ "/" _ Factor
+
+
 
 
 AccessElement <- !(Special / S) ([a-zA-Z0-9] / "->" / "[" / "]")+ {

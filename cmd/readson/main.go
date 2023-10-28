@@ -16,12 +16,11 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// TODO math
 // TODO tests?
-// TODO check correctness of current grammar - can it be reduced/optimized? <-
 // TODO make blocks nicer to use
 // TODO make errors nicer if possible
 // TODO better logging when possible
+// TODO make pre-processing better
 
 func main() {
 	app := &cli.App{
