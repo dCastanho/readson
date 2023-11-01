@@ -190,7 +190,7 @@ If <- S _ "if" _ cond:OrCondition _ S tr:Seq _ f:(S _ "else" _ S _ Seq)? S _ "en
 	return &node, nil 
 }
 
-For <- S _ "for" _ vars:ForVars _ "=" _ t:("range" / "props") _ p:Element _ S _ l:Seq S _ "end" _ S {
+For <- S _ "for" _ vars:ForVars _ "=" _ t:("range" / "props") _ p:Element _ S l:Seq S _ "end" _ S {
 	stringVars := vars.([]string)
 	loop := l.(node)
 	element := p.(element)

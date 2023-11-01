@@ -16,11 +16,9 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// TODO tests?
-// TODO make blocks nicer to use
-// TODO make errors nicer if possible
-// TODO better logging when possible
-// TODO make pre-processing better
+// TODO make errors nicer
+// TODO better logging
+// TODO better pre-processing
 
 func main() {
 	app := &cli.App{
